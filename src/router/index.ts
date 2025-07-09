@@ -3,6 +3,10 @@ import Dashboard from '../views/Dashboard.vue'
 import Trading from '../views/Trading.vue'
 import Analytics from '../views/Analytics.vue'
 import Strategies from '../views/Strategies.vue'
+import Portfolios from '../views/Portfolios.vue'
+import Indicators from '../views/Indicators.vue'
+import Charts from '../views/Charts.vue'
+import Alerts from '../views/Alerts.vue'
 import Profile from '../views/Profile.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
@@ -37,6 +41,30 @@ export const routes = [
     path: '/strategies',
     name: 'Strategies',
     component: Strategies
+    // Accessible to guests with limited functionality
+  },
+  {
+    path: '/portfolios',
+    name: 'Portfolios',
+    component: Portfolios
+    // Accessible to guests with limited functionality
+  },
+  {
+    path: '/indicators',
+    name: 'Indicators',
+    component: Indicators
+    // Accessible to guests with limited functionality
+  },
+  {
+    path: '/charts',
+    name: 'Charts',
+    component: Charts
+    // Accessible to guests with limited functionality
+  },
+  {
+    path: '/alerts',
+    name: 'Alerts',
+    component: Alerts
     // Accessible to guests with limited functionality
   },
   {

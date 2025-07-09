@@ -1,27 +1,43 @@
 <template>
   <div class="min-h-[calc(100vh-64px)]">
-    <!-- For non-authenticated users: Show AI Assistant Panel -->
-    <div v-if="!authStore.isAuthenticated" class="h-[calc(100vh-64px)]">
-      <div class="h-full flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-gray-900 dark:to-gray-800">
-        <div class="max-w-4xl w-full mx-auto px-6">
-          <!-- Welcome Section -->
-          <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-primary-100 dark:bg-primary-900 rounded-full mb-4">
-              <svg class="w-8 h-8 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
+    <!-- For non-authenticated users: Show chart with AI input below -->
+    <div v-if="!authStore.isAuthenticated">
+      <!-- Hero section with chart -->
+      <section class="py-12 px-4 md:py-20 bg-gradient-to-r from-primary-800 to-primary-900 dark:from-gray-800 dark:to-gray-900">
+        <div class="max-w-7xl mx-auto">
+          <div class="flex flex-col md:flex-row items-center">
+            <!-- Text content -->
+            <div class="md:w-1/2 text-center md:text-left mb-10 md:mb-0">
+              <h1 class="text-4xl md:text-5xl font-bold text-white tracking-tight mb-4">
+                Trade Smarter with <span class="text-accent-400">AI-Powered</span> Insights
+              </h1>
+              <p class="text-lg md:text-xl text-white/80 mb-8 max-w-xl">
+                Harness the power of artificial intelligence to optimize your trading strategies and maximize returns in today's complex markets.
+              </p>
             </div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Welcome to AI Trader
-            </h1>
-            <p class="text-lg text-gray-600 dark:text-gray-300 mb-6">
-              Describe your trading strategy and I'll help you build it
+            
+            <!-- Chart preview -->
+            <div class="md:w-1/2">
+              <TradingChart symbol="AAPL" class="rounded-lg shadow-2xl" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI Input Section -->
+      <section class="py-12 px-4 bg-white dark:bg-gray-900">
+        <div class="max-w-4xl mx-auto">
+          <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              Describe Your Trading Strategy
+            </h2>
+            <p class="text-lg text-gray-600 dark:text-gray-300">
+              Tell our AI what you're looking for and we'll help you build it
             </p>
           </div>
 
-          <!-- AI Chat Interface -->
-          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden transition-all duration-500 hover:shadow-2xl">
-            <!-- Input Area Only (No Chat History) -->
+          <!-- AI Input Interface -->
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700">
             <div class="p-6">
               <div class="flex items-end space-x-4">
                 <div class="flex-1">
@@ -74,7 +90,120 @@
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      <!-- Features section -->
+      <section class="py-12 px-4 bg-gray-50 dark:bg-gray-800">
+        <div class="max-w-7xl mx-auto">
+          <h2 class="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
+            Professional-Grade Trading Tools
+          </h2>
+          
+          <div class="grid md:grid-cols-3 gap-8">
+            <div 
+              v-for="(feature, index) in features" 
+              :key="index"
+              class="card hover:shadow-lg transition-all duration-300"
+            >
+              <div class="flex flex-col items-center text-center">
+                <div class="p-3 rounded-full bg-primary-100 dark:bg-primary-900 mb-4">
+                  <component 
+                    :is="feature.icon" 
+                    class="h-8 w-8 text-primary-700 dark:text-primary-300"
+                  />
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  {{ feature.title }}
+                </h3>
+                <p class="text-gray-600 dark:text-gray-300">
+                  {{ feature.description }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pricing section -->
+      <section class="py-16 px-4 bg-white dark:bg-gray-900">
+        <div class="max-w-7xl mx-auto">
+          <h2 class="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
+            Choose Your Plan
+          </h2>
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Free plan -->
+            <div class="card">
+              <div class="p-6">
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Free</h3>
+                <p class="text-4xl font-bold text-gray-900 dark:text-white mb-6">$0</p>
+                <ul class="space-y-3 mb-6">
+                  <li class="flex items-center">
+                    <CheckIcon class="h-5 w-5 text-success-500 mr-2" />
+                    <span>Basic charting tools</span>
+                  </li>
+                  <li class="flex items-center">
+                    <CheckIcon class="h-5 w-5 text-success-500 mr-2" />
+                    <span>Limited market data</span>
+                  </li>
+                </ul>
+                <button 
+                  @click="$router.push('/register')"
+                  class="btn btn-secondary w-full"
+                >
+                  Get Started
+                </button>
+              </div>
+            </div>
+
+            <!-- Pro plan -->
+            <div class="card border-2 border-primary-500 transform scale-105">
+              <div class="p-6">
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Pro</h3>
+                <p class="text-4xl font-bold text-gray-900 dark:text-white mb-6">$49</p>
+                <ul class="space-y-3 mb-6">
+                  <li class="flex items-center">
+                    <CheckIcon class="h-5 w-5 text-success-500 mr-2" />
+                    <span>Advanced AI insights</span>
+                  </li>
+                  <li class="flex items-center">
+                    <CheckIcon class="h-5 w-5 text-success-500 mr-2" />
+                    <span>Real-time market data</span>
+                  </li>
+                  <li class="flex items-center">
+                    <CheckIcon class="h-5 w-5 text-success-500 mr-2" />
+                    <span>Custom strategies</span>
+                  </li>
+                </ul>
+                <button 
+                  @click="$router.push('/register')"
+                  class="btn btn-primary w-full"
+                >
+                  Upgrade to Pro
+                </button>
+              </div>
+            </div>
+
+            <!-- Enterprise plan -->
+            <div class="card">
+              <div class="p-6">
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Enterprise</h3>
+                <p class="text-4xl font-bold text-gray-900 dark:text-white mb-6">Custom</p>
+                <ul class="space-y-3 mb-6">
+                  <li class="flex items-center">
+                    <CheckIcon class="h-5 w-5 text-success-500 mr-2" />
+                    <span>Custom solutions</span>
+                  </li>
+                  <li class="flex items-center">
+                    <CheckIcon class="h-5 w-5 text-success-500 mr-2" />
+                    <span>Dedicated support</span>
+                  </li>
+                </ul>
+                <button class="btn btn-secondary w-full">Contact Sales</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
 
     <!-- For authenticated users: Show landing page with chart -->
@@ -153,7 +282,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChartBarIcon, CurrencyDollarIcon, LightBulbIcon } from '@heroicons/vue/24/outline'
+import { ChartBarIcon, CurrencyDollarIcon, LightBulbIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../stores/auth'
 import TradingChart from '../components/charts/TradingChart.vue'
 

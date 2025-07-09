@@ -71,12 +71,12 @@ const navigateTo = (path: string) => {
         </router-link>
 
         <!-- Navigation - Updated menu items -->
-        <nav v-if="isAuthenticated && !isGuestMode" class="hidden md:flex space-x-8">
+        <nav class="hidden md:flex space-x-8">
           <router-link 
             v-for="item in navItems"
             :key="item.name"
             :to="item.path"
-            class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
+            class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
           >
             {{ item.name }}
           </router-link>
