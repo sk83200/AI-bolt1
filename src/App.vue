@@ -6,10 +6,10 @@
       @toggle-dark-mode="toggleDarkMode" 
     />
     
-    <!-- Guest Mode Banner -->
+    <!-- Guest Mode Banner - Only show for guest mode users -->
     <div 
-      v-if="!authStore.isAuthenticated && showGuestBanner"
-      class="bg-primary-50 dark:bg-primary-900 border-b border-primary-200 dark:border-primary-800 px-4 py-2"
+      v-if="authStore.guestMode && showGuestBanner"
+      class="bg-primary-50 dark:bg-primary-900 border-b border-primary-200 dark:border-primary-800 px-4 py-2 flex-shrink-0"
     >
       <div class="flex items-center justify-between max-w-7xl mx-auto">
         <div class="flex items-center">
@@ -50,7 +50,7 @@
       </div>
       
       <!-- Full workspace -->
-      <div v-else-if="authStore.isAuthenticated" class="h-full">
+      <div v-else-if="authStore.isAuthenticated && !authStore.guestMode" class="h-full">
         <Splitpanes class="h-full">
           <!-- Left panel - AI Input & Messages -->
           <Pane :size="leftPaneSize" min-size="20">
@@ -100,7 +100,7 @@
         </Splitpanes>
       </div>
       
-      <!-- Guest mode workspace -->
+      <!-- Guest mode workspace or non-authenticated -->
       <div v-else class="h-full">
         <router-view></router-view>
       </div>
@@ -140,7 +140,7 @@ const centerPaneSize = computed(() => 70)
 
 // Centered assistant logic
 const showCenteredAssistant = computed(() => {
-  if (!authStore.isAuthenticated) return false
+  if (!authStore.isAuthenticated || authStore.guestMode) return false
   if (authStore.isReturningUser && workspaceStore.hasWorkspaceState) return false
   return !workspaceStore.hasEngaged
 })

@@ -1,7 +1,7 @@
 <template>
-  <div class="h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+  <div class="h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
     <!-- Header -->
-    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
       <div class="flex items-center justify-between">
         <h3 class="font-medium text-gray-900 dark:text-white flex items-center">
           <span class="w-2 h-2 rounded-full bg-warning-500 mr-2"></span>
@@ -13,10 +13,11 @@
       </div>
     </div>
     
-    <!-- Chat messages -->
+    <!-- Chat messages - Fixed height calculation -->
     <div 
       ref="chatContainer"
-      class="flex-1 overflow-y-auto p-4 space-y-4 h-[calc(100vh-200px)]"
+      class="flex-1 overflow-y-auto p-4 space-y-4"
+      style="height: calc(100vh - 200px);"
     >
       <div 
         v-for="(message, index) in messages" 
@@ -65,8 +66,8 @@
       </div>
     </div>
     
-    <!-- Input area -->
-    <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+    <!-- Input area - Fixed at bottom -->
+    <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
       <div class="flex items-end">
         <textarea
           v-model="input"

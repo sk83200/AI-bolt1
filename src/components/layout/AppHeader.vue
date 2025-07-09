@@ -27,6 +27,15 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
 const isProUser = computed(() => authStore.isProUser)
 const isGuestMode = computed(() => authStore.guestMode)
 
+// Navigation items - updated as requested
+const navItems = [
+  { name: 'Strategies', path: '/strategies' },
+  { name: 'Portfolios', path: '/portfolios' },
+  { name: 'Indicators', path: '/indicators' },
+  { name: 'Charts', path: '/charts' },
+  { name: 'Alerts', path: '/alerts' }
+]
+
 // Methods
 const toggleDarkMode = () => {
   emit('toggle-dark-mode')
@@ -61,15 +70,15 @@ const navigateTo = (path: string) => {
           <span class="font-semibold text-lg text-gray-900 dark:text-white">Trader</span>
         </router-link>
 
-        <!-- Navigation -->
+        <!-- Navigation - Updated menu items -->
         <nav v-if="isAuthenticated && !isGuestMode" class="hidden md:flex space-x-8">
           <router-link 
-            v-for="item in ['Dashboard', 'Trading', 'Analytics']"
-            :key="item"
-            :to="'/' + item.toLowerCase()"
+            v-for="item in navItems"
+            :key="item.name"
+            :to="item.path"
             class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
           >
-            {{ item }}
+            {{ item.name }}
           </router-link>
         </nav>
 
