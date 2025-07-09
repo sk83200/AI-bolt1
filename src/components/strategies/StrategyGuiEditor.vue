@@ -202,6 +202,48 @@
           </div>
         </div>
 
+        <!-- Action Buttons -->
+        <div class="flex space-x-3">
+          <button 
+            type="submit"
+            :disabled="isGuest"
+            :class="[
+              'btn',
+              isGuest 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                : 'btn-primary'
+            ]"
+          >
+            {{ isGuest ? 'Save (Sign up required)' : 'Save Strategy' }}
+          </button>
+          <button 
+            @click="runBacktest"
+            :disabled="isGuest"
+            :class="[
+              'btn',
+              isGuest 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                : 'btn-secondary'
+            ]"
+            type="button"
+          >
+            {{ isGuest ? 'Backtest (Sign up required)' : 'Run Backtest' }}
+          </button>
+          <button 
+            @click="resetForm"
+            :disabled="isGuest"
+            :class="[
+              'btn',
+              isGuest 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                : 'btn-secondary'
+            ]"
+            type="button"
+          >
+            Reset
+          </button>
+        </div>
+
         <!-- Guest Mode Upgrade Prompt -->
         <div v-if="isGuest" class="bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-primary-900 dark:to-secondary-900 rounded-lg p-4 text-center">
           <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">
@@ -226,30 +268,6 @@
               Log In
             </button>
           </div>
-        </div>
-
-        <!-- Action Buttons for Authenticated Users -->
-        <div v-else class="flex space-x-3">
-          <button 
-            type="submit"
-            class="btn btn-primary"
-          >
-            Save Strategy
-          </button>
-          <button 
-            @click="runBacktest"
-            class="btn btn-secondary"
-            type="button"
-          >
-            Run Backtest
-          </button>
-          <button 
-            @click="resetForm"
-            class="btn btn-secondary"
-            type="button"
-          >
-            Reset
-          </button>
         </div>
       </form>
     </div>
@@ -290,9 +308,10 @@ const localData = reactive({
   entryRules: {
     conditions: props.isGuest ? [
       { text: 'RSI > 70' },
-      { text: 'Price > SMA20' }
+      { text: 'Price > SMA20' },
+      { text: 'Volume > 1.5x average' }
     ] : [{ text: '' }],
-    indicators: props.isGuest ? ['RSI', 'SMA'] : []
+    indicators: props.isGuest ? ['RSI', 'SMA', 'Volume'] : []
   },
   exitRules: {
     profitTarget: 5,
@@ -320,7 +339,10 @@ const removeCondition = (index: number) => {
 
 // Handle form submission
 const handleSubmit = () => {
-  if (props.isGuest) return
+  if (props.isGuest) {
+    router.push('/register')
+    return
+  }
   
   console.log('Saving strategy:', localData)
   // Implementation for saving strategy
@@ -328,7 +350,10 @@ const handleSubmit = () => {
 
 // Run backtest
 const runBacktest = () => {
-  if (props.isGuest) return
+  if (props.isGuest) {
+    router.push('/register')
+    return
+  }
   
   console.log('Running backtest for:', localData)
   // Implementation for backtesting
@@ -336,7 +361,10 @@ const runBacktest = () => {
 
 // Reset form
 const resetForm = () => {
-  if (props.isGuest) return
+  if (props.isGuest) {
+    router.push('/register')
+    return
+  }
   
   Object.assign(localData, {
     name: '',
@@ -359,14 +387,18 @@ const resetForm = () => {
   })
 }
 
-// Watch for changes and emit updates
+// Watch for changes and emit updates (only for authenticated users)
 watch(localData, (newValue) => {
-  emit('update:modelValue', newValue)
-  emit('update', newValue)
+  if (!props.isGuest) {
+    emit('update:modelValue', newValue)
+    emit('update', newValue)
+  }
 }, { deep: true })
 
 // Watch for prop changes
 watch(() => props.modelValue, (newValue) => {
-  Object.assign(localData, newValue)
+  if (!props.isGuest) {
+    Object.assign(localData, newValue)
+  }
 }, { deep: true })
 </script>

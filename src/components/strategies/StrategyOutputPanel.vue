@@ -5,32 +5,44 @@
       <div class="flex items-center justify-between">
         <h3 class="font-medium text-gray-900 dark:text-white">Strategy Output</h3>
         <div class="flex items-center space-x-2">
+          <!-- Language tabs for all users -->
           <div class="flex rounded-md shadow-sm">
             <button
-              @click="activeTab = 'code'"
+              @click="activeTab = 'json'"
               :class="[
                 'px-3 py-1 text-xs font-medium rounded-l-md border',
-                activeTab === 'code'
+                activeTab === 'json'
                   ? 'bg-primary-100 text-primary-800 border-primary-300 dark:bg-primary-900 dark:text-primary-200 dark:border-primary-800'
                   : 'bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600'
               ]"
             >
-              Code
+              JSON
             </button>
             <button
-              @click="activeTab = 'preview'"
+              @click="activeTab = 'python'"
               :class="[
-                'px-3 py-1 text-xs font-medium rounded-r-md border border-l-0',
-                activeTab === 'preview'
+                'px-3 py-1 text-xs font-medium border-t border-b',
+                activeTab === 'python'
                   ? 'bg-primary-100 text-primary-800 border-primary-300 dark:bg-primary-900 dark:text-primary-200 dark:border-primary-800'
                   : 'bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600'
               ]"
             >
-              Preview
+              Python
+            </button>
+            <button
+              @click="activeTab = 'java'"
+              :class="[
+                'px-3 py-1 text-xs font-medium rounded-r-md border',
+                activeTab === 'java'
+                  ? 'bg-primary-100 text-primary-800 border-primary-300 dark:bg-primary-900 dark:text-primary-200 dark:border-primary-800'
+                  : 'bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600'
+              ]"
+            >
+              Java
             </button>
           </div>
           <button 
-            v-if="!isGuest && generatedCode"
+            v-if="!isGuest && getCurrentCode()"
             @click="copyCode"
             class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
           >
@@ -42,118 +54,36 @@
     
     <!-- Content -->
     <div class="flex-1 overflow-hidden">
-      <!-- Code Tab -->
-      <div v-if="activeTab === 'code'" class="h-full">
-        <div v-if="isGuest" class="h-full flex flex-col">
-          <!-- Sample code for guest users -->
-          <div class="flex-1 overflow-auto p-4">
-            <div class="bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-xs overflow-auto">
-              <pre>{{ sampleCode }}</pre>
-            </div>
-          </div>
-          
-          <!-- Guest upgrade prompt -->
-          <div class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-            <div class="text-center">
-              <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                🔒 This is sample code. Sign up to generate custom strategies.
-              </p>
-              <button 
-                @click="$router.push('/register')"
-                class="bg-primary-600 hover:bg-primary-700 text-white text-xs px-4 py-2 rounded-md font-medium"
-              >
-                Sign Up for Custom Code Generation
-              </button>
-            </div>
-          </div>
+      <div class="h-full overflow-auto p-4">
+        <!-- Code display (read-only for guests) -->
+        <div class="bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-xs overflow-auto h-full">
+          <pre>{{ getCurrentCode() }}</pre>
         </div>
         
-        <!-- Full code for authenticated users -->
-        <div v-else class="h-full overflow-auto p-4">
-          <div v-if="generatedCode" class="bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-xs overflow-auto">
-            <pre>{{ generatedCode }}</pre>
-          </div>
-          <div v-else class="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
-            <div class="text-center">
-              <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-              </svg>
-              <p class="mt-2 text-sm">Configure your strategy to generate code</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Preview Tab -->
-      <div v-else-if="activeTab === 'preview'" class="h-full overflow-auto p-4">
-        <div class="space-y-4">
-          <!-- Strategy Summary -->
-          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Strategy Summary</h4>
-            <div class="grid grid-cols-2 gap-4 text-xs">
-              <div>
-                <span class="text-gray-500 dark:text-gray-400">Type:</span>
-                <span class="ml-2 text-gray-900 dark:text-white capitalize">{{ strategyData.type?.replace('_', ' ') || 'Not set' }}</span>
-              </div>
-              <div>
-                <span class="text-gray-500 dark:text-gray-400">Asset Class:</span>
-                <span class="ml-2 text-gray-900 dark:text-white capitalize">{{ strategyData.assetClass || 'Not set' }}</span>
-              </div>
-              <div>
-                <span class="text-gray-500 dark:text-gray-400">Timeframe:</span>
-                <span class="ml-2 text-gray-900 dark:text-white">{{ strategyData.timeframe || 'Not set' }}</span>
-              </div>
-              <div>
-                <span class="text-gray-500 dark:text-gray-400">Risk per Trade:</span>
-                <span class="ml-2 text-gray-900 dark:text-white">{{ strategyData.riskManagement?.maxRiskPerTrade || 2 }}%</span>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Entry Rules Preview -->
-          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Entry Rules</h4>
-            <div class="text-xs space-y-1">
-              <div v-if="strategyData.entryRules?.indicators?.length">
-                <span class="text-gray-500 dark:text-gray-400">Indicators:</span>
-                <span class="ml-2 text-gray-900 dark:text-white">{{ strategyData.entryRules.indicators.join(', ') }}</span>
-              </div>
-              <div v-if="strategyData.entryRules?.conditions?.length">
-                <span class="text-gray-500 dark:text-gray-400">Conditions:</span>
-                <ul class="ml-4 mt-1 space-y-1">
-                  <li v-for="condition in strategyData.entryRules.conditions" :key="condition.text" class="text-gray-900 dark:text-white">
-                    • {{ condition.text || 'Empty condition' }}
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Exit Rules Preview -->
-          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Exit Rules</h4>
-            <div class="text-xs space-y-1">
-              <div>
-                <span class="text-gray-500 dark:text-gray-400">Profit Target:</span>
-                <span class="ml-2 text-gray-900 dark:text-white">{{ strategyData.exitRules?.profitTarget || 5 }}%</span>
-              </div>
-              <div>
-                <span class="text-gray-500 dark:text-gray-400">Stop Loss:</span>
-                <span class="ml-2 text-gray-900 dark:text-white">{{ strategyData.exitRules?.stopLoss || 2 }}%</span>
-              </div>
-              <div v-if="strategyData.exitRules?.useTrailingStop">
-                <span class="text-gray-500 dark:text-gray-400">Trailing Stop:</span>
-                <span class="ml-2 text-gray-900 dark:text-white">Enabled</span>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Guest mode limitations -->
-          <div v-if="isGuest" class="bg-warning-50 dark:bg-warning-900 rounded-lg p-4">
-            <h4 class="text-sm font-medium text-warning-800 dark:text-warning-200 mb-2">🔒 Limited Preview</h4>
-            <p class="text-xs text-warning-700 dark:text-warning-300">
-              Sign up to access backtesting, performance metrics, and detailed analysis.
+        <!-- Guest mode overlay -->
+        <div v-if="isGuest" class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div class="bg-white dark:bg-gray-800 rounded-lg p-6 text-center max-w-sm mx-4">
+            <div class="text-4xl mb-4">🔒</div>
+            <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Code Editing Restricted
+            </h4>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+              This code cannot be edited in guest mode. Sign up to customize and export your strategies.
             </p>
+            <div class="space-y-2">
+              <button 
+                @click="$router.push('/register')"
+                class="w-full bg-primary-600 hover:bg-primary-700 text-white text-sm px-4 py-2 rounded-md font-medium"
+              >
+                Sign Up for Full Access
+              </button>
+              <button 
+                @click="$router.push('/login')"
+                class="w-full text-primary-600 hover:text-primary-700 dark:text-primary-400 text-sm px-4 py-2"
+              >
+                Log In
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -173,12 +103,43 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
-const activeTab = ref('code')
+const activeTab = ref('json')
 
-// Sample code for guest users
-const sampleCode = computed(() => `# Sample Trading Strategy Code
-# This is a demonstration of what your custom strategy would look like
+// Sample codes for different languages
+const sampleCodes = {
+  json: computed(() => `{
+  "strategy": {
+    "name": "Sample Momentum Strategy",
+    "type": "momentum",
+    "assetClass": "stocks",
+    "timeframe": "1d",
+    "entryRules": {
+      "conditions": [
+        "RSI > 70",
+        "Price > SMA20",
+        "Volume > 1.5x average"
+      ],
+      "indicators": ["RSI", "SMA", "Volume"]
+    },
+    "exitRules": {
+      "profitTarget": 5,
+      "stopLoss": 2,
+      "useTrailingStop": false
+    },
+    "riskManagement": {
+      "maxRiskPerTrade": 2,
+      "maxPositions": 5
+    }
+  },
+  "backtest": {
+    "startDate": "2023-01-01",
+    "endDate": "2023-12-31",
+    "initialCapital": 100000,
+    "commission": 0.001
+  }
+}`),
 
+  python: computed(() => `# Sample Trading Strategy - Python Implementation
 import pandas as pd
 import numpy as np
 from trading_framework import Strategy, Indicator
@@ -210,8 +171,7 @@ class SampleMomentumStrategy(Strategy):
         
         return (
             position.unrealized_pnl_pct >= profit_target or
-            position.unrealized_pnl_pct <= -stop_loss or
-            data['rsi'] < 30
+            position.unrealized_pnl_pct <= -stop_loss
         )
         
     def position_size(self, data):
@@ -219,14 +179,83 @@ class SampleMomentumStrategy(Strategy):
         max_risk = 2.0  # 2% risk per trade
         return self.calculate_position_size(max_risk)
 
-# Sign up to generate custom strategies with your parameters!`)
+# Sign up to generate custom strategies!`),
+
+  java: computed(() => `// Sample Trading Strategy - Java Implementation
+package com.trading.strategies;
+
+import com.trading.framework.Strategy;
+import com.trading.framework.Indicator;
+import com.trading.framework.MarketData;
+import com.trading.framework.Position;
+
+public class SampleMomentumStrategy extends Strategy {
+    
+    private Indicator rsi;
+    private Indicator sma20;
+    private Indicator volumeAvg;
+    
+    public SampleMomentumStrategy() {
+        super();
+        this.assetClass = "stocks";
+        this.timeframe = "1d";
+        setupIndicators();
+    }
+    
+    private void setupIndicators() {
+        this.rsi = new Indicator.RSI(14);
+        this.sma20 = new Indicator.SMA(20);
+        this.volumeAvg = new Indicator.SMA(20, "volume");
+    }
+    
+    @Override
+    public boolean entryConditions(MarketData data) {
+        return data.getRsi() > 70 &&
+               data.getClose() > data.getSma20() &&
+               data.getVolume() > data.getVolumeAvg() * 1.5;
+    }
+    
+    @Override
+    public boolean exitConditions(MarketData data, Position position) {
+        double profitTarget = 5.0; // 5%
+        double stopLoss = 2.0;     // 2%
+        
+        return position.getUnrealizedPnlPct() >= profitTarget ||
+               position.getUnrealizedPnlPct() <= -stopLoss;
+    }
+    
+    @Override
+    public double positionSize(MarketData data) {
+        double maxRisk = 2.0; // 2% risk per trade
+        return calculatePositionSize(maxRisk);
+    }
+}
+
+// Sign up to generate custom strategies!`)
+}
+
+// Get current code based on active tab
+const getCurrentCode = () => {
+  if (props.isGuest) {
+    return sampleCodes[activeTab.value].value
+  } else {
+    // For authenticated users, show generated code or sample
+    if (activeTab.value === 'python' && props.generatedCode) {
+      return props.generatedCode
+    } else if (activeTab.value === 'json') {
+      return JSON.stringify(props.strategyData, null, 2)
+    } else {
+      return sampleCodes[activeTab.value].value
+    }
+  }
+}
 
 // Copy code to clipboard
 const copyCode = async () => {
   if (props.isGuest) return
   
   try {
-    await navigator.clipboard.writeText(props.generatedCode)
+    await navigator.clipboard.writeText(getCurrentCode())
     // You could add a toast notification here
     console.log('Code copied to clipboard')
   } catch (error) {

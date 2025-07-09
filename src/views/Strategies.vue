@@ -10,7 +10,7 @@
             <div class="h-full bg-white dark:bg-gray-800">
               <StrategyGuiEditor 
                 v-model="strategyData"
-                :is-guest="authStore.guestMode"
+                :is-guest="authStore.guestMode || !authStore.isAuthenticated"
                 @update="handleFormUpdate"
               />
             </div>
@@ -21,7 +21,7 @@
             <div class="h-full bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
               <StrategyNotifications 
                 :notifications="notifications"
-                :is-guest="authStore.guestMode"
+                :is-guest="authStore.guestMode || !authStore.isAuthenticated"
               />
             </div>
           </Pane>
@@ -32,7 +32,7 @@
       <Pane :size="40" min-size="30">
         <StrategyOutputPanel 
           :strategy-data="strategyData"
-          :is-guest="authStore.guestMode"
+          :is-guest="authStore.guestMode || !authStore.isAuthenticated"
           :generated-code="generatedCode"
         />
       </Pane>
@@ -51,19 +51,24 @@ import StrategyOutputPanel from '../components/strategies/StrategyOutputPanel.vu
 
 const authStore = useAuthStore()
 
-// Strategy data
+// Strategy data - with sample data for guests
 const strategyData = reactive({
-  name: '',
+  name: (authStore.guestMode || !authStore.isAuthenticated) ? 'Sample Momentum Strategy' : '',
   type: 'momentum',
   assetClass: 'stocks',
   timeframe: '1d',
   entryRules: {
-    conditions: [],
-    indicators: []
+    conditions: (authStore.guestMode || !authStore.isAuthenticated) ? [
+      { text: 'RSI > 70' },
+      { text: 'Price > SMA20' },
+      { text: 'Volume > 1.5x average' }
+    ] : [{ text: '' }],
+    indicators: (authStore.guestMode || !authStore.isAuthenticated) ? ['RSI', 'SMA', 'Volume'] : []
   },
   exitRules: {
     profitTarget: 5,
-    stopLoss: 2
+    stopLoss: 2,
+    useTrailingStop: false
   },
   riskManagement: {
     maxRiskPerTrade: 2,
@@ -85,34 +90,40 @@ const notifications = ref([
   {
     id: 2,
     type: 'warning',
-    message: authStore.guestMode ? 'Guest mode: Limited functionality available' : 'Ready to build strategies',
+    message: (authStore.guestMode || !authStore.isAuthenticated) 
+      ? 'Guest mode: Save and backtest features are disabled' 
+      : 'Ready to build strategies',
     timestamp: new Date()
   }
 ])
 
 // Handle form updates
 const handleFormUpdate = (formData: any) => {
-  Object.assign(strategyData, formData)
-  
-  // Generate code if not in guest mode
-  if (!authStore.guestMode) {
+  // Only allow updates for authenticated users
+  if (!authStore.guestMode && authStore.isAuthenticated) {
+    Object.assign(strategyData, formData)
     generateCode()
+    
+    // Add notification
+    notifications.value.unshift({
+      id: Date.now(),
+      type: 'info',
+      message: 'Strategy parameters updated',
+      timestamp: new Date()
+    })
   }
-  
-  // Add notification
-  notifications.value.unshift({
-    id: Date.now(),
-    type: 'info',
-    message: 'Strategy parameters updated',
-    timestamp: new Date()
-  })
 }
 
 // Generate code based on strategy data
 const generateCode = () => {
-  // Mock code generation
-  generatedCode.value = `
-# Generated Trading Strategy: ${strategyData.name || 'Untitled Strategy'}
+  // Only generate code for authenticated users
+  if (authStore.guestMode || !authStore.isAuthenticated) {
+    generatedCode.value = ''
+    return
+  }
+
+  // Mock code generation for authenticated users
+  generatedCode.value = `# Generated Trading Strategy: ${strategyData.name || 'Untitled Strategy'}
 
 import pandas as pd
 import numpy as np
@@ -150,6 +161,11 @@ class ${strategyData.name?.replace(/\s+/g, '') || 'CustomStrategy'}(Strategy):
         max_risk = ${strategyData.riskManagement.maxRiskPerTrade}
         return self.calculate_position_size(max_risk)
 `
+}
+
+// Initialize code generation for authenticated users
+if (!authStore.guestMode && authStore.isAuthenticated) {
+  generateCode()
 }
 </script>
 
