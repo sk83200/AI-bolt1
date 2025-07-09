@@ -2,17 +2,59 @@
   <div class="h-full">
     <!-- Strategies Page Layout with Resizable Split Panes -->
     <Splitpanes class="h-full">
-      <!-- Left: Split pane with GUI Editor Form (top) and Messages/Notifications (bottom) -->
-      <Pane :size="60" min-size="40">
+      <!-- Left: AI Assistant Panel (for all users) -->
+      <Pane :size="30" min-size="20">
+        <StrategiesAiAssistant 
+          :is-guest="authStore.guestMode || !authStore.isAuthenticated"
+          @strategy-update="handleAiSuggestion"
+        />
+      </Pane>
+      
+      <!-- Right: Split pane with GUI Editor Form (top) and Messages/Notifications (bottom) -->
+      <Pane :size="50" min-size="30">
         <Splitpanes horizontal class="h-full">
           <!-- Top: GUI Editor Form -->
           <Pane :size="70" min-size="40">
-            <div class="h-full bg-white dark:bg-gray-800">
+            <div class="h-full bg-white dark:bg-gray-800 relative">
+              <!-- Grayed out overlay for guest mode -->
+              <div 
+                v-if="authStore.guestMode || !authStore.isAuthenticated"
+                class="absolute inset-0 bg-gray-500 bg-opacity-30 z-10 pointer-events-none"
+              ></div>
+              
               <StrategyGuiEditor 
                 v-model="strategyData"
                 :is-guest="authStore.guestMode || !authStore.isAuthenticated"
                 @update="handleFormUpdate"
               />
+              
+              <!-- Guest mode banner at bottom -->
+              <div 
+                v-if="authStore.guestMode || !authStore.isAuthenticated"
+                class="absolute bottom-0 left-0 right-0 bg-warning-100 dark:bg-warning-900 border-t border-warning-200 dark:border-warning-800 px-4 py-3 z-20"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <svg class="h-5 w-5 text-warning-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm font-medium text-warning-800 dark:text-warning-200">
+                      Guest Mode - Limited Features
+                    </span>
+                  </div>
+                  <div class="flex items-center space-x-3">
+                    <span class="text-xs text-warning-700 dark:text-warning-300">
+                      Sign up to save strategies and run backtests
+                    </span>
+                    <button 
+                      @click="$router.push('/register')"
+                      class="bg-warning-600 hover:bg-warning-700 text-white text-xs px-3 py-1 rounded-md font-medium"
+                    >
+                      Sign Up Free
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </Pane>
           
@@ -29,7 +71,7 @@
       </Pane>
       
       <!-- Right: Output/Code Panel -->
-      <Pane :size="40" min-size="30">
+      <Pane :size="20" min-size="15">
         <StrategyOutputPanel 
           :strategy-data="strategyData"
           :is-guest="authStore.guestMode || !authStore.isAuthenticated"
@@ -45,6 +87,7 @@ import { ref, reactive } from 'vue'
 import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
 import { useAuthStore } from '../stores/auth'
+import StrategiesAiAssistant from '../components/strategies/StrategiesAiAssistant.vue'
 import StrategyGuiEditor from '../components/strategies/StrategyGuiEditor.vue'
 import StrategyNotifications from '../components/strategies/StrategyNotifications.vue'
 import StrategyOutputPanel from '../components/strategies/StrategyOutputPanel.vue'
@@ -96,6 +139,23 @@ const notifications = ref([
     timestamp: new Date()
   }
 ])
+
+// Handle AI suggestions
+const handleAiSuggestion = (suggestion: any) => {
+  // Only apply suggestions for authenticated users
+  if (!authStore.guestMode && authStore.isAuthenticated) {
+    Object.assign(strategyData, suggestion)
+    generateCode()
+    
+    // Add notification
+    notifications.value.unshift({
+      id: Date.now(),
+      type: 'success',
+      message: 'AI suggestion applied to strategy',
+      timestamp: new Date()
+    })
+  }
+}
 
 // Handle form updates
 const handleFormUpdate = (formData: any) => {

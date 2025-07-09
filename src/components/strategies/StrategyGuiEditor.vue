@@ -23,7 +23,8 @@
                 v-model="localData.name"
                 type="text"
                 class="input"
-                :disabled="isGuest"
+                :readonly="isGuest"
+                :class="{ 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed': isGuest }"
                 :placeholder="isGuest ? 'Sample Momentum Strategy' : 'Enter strategy name'"
               />
             </div>
@@ -33,6 +34,7 @@
                 v-model="localData.type"
                 class="input"
                 :disabled="isGuest"
+                :class="{ 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed': isGuest }"
               >
                 <option value="momentum">Momentum</option>
                 <option value="mean_reversion">Mean Reversion</option>
@@ -46,6 +48,7 @@
                 v-model="localData.assetClass"
                 class="input"
                 :disabled="isGuest"
+                :class="{ 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed': isGuest }"
               >
                 <option value="stocks">Stocks</option>
                 <option value="crypto">Cryptocurrency</option>
@@ -59,6 +62,7 @@
                 v-model="localData.timeframe"
                 class="input"
                 :disabled="isGuest"
+                :class="{ 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed': isGuest }"
               >
                 <option value="1m">1 Minute</option>
                 <option value="5m">5 Minutes</option>
@@ -83,6 +87,7 @@
                 v-for="indicator in availableIndicators" 
                 :key="indicator.value"
                 class="flex items-center space-x-2"
+                :class="{ 'opacity-60 cursor-not-allowed': isGuest }"
               >
                 <input
                   type="checkbox"
@@ -90,6 +95,7 @@
                   v-model="localData.entryRules.indicators"
                   :disabled="isGuest"
                   class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                  :class="{ 'cursor-not-allowed': isGuest }"
                 />
                 <span class="text-sm text-gray-700 dark:text-gray-300">{{ indicator.label }}</span>
               </label>
@@ -109,7 +115,8 @@
                   v-model="condition.text"
                   type="text"
                   class="flex-1 input"
-                  :disabled="isGuest"
+                  :readonly="isGuest"
+                  :class="{ 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed': isGuest }"
                   placeholder="e.g., RSI > 70"
                 />
                 <button 
@@ -145,7 +152,8 @@
                 min="0"
                 step="0.1"
                 class="input"
-                :disabled="isGuest"
+                :readonly="isGuest"
+                :class="{ 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed': isGuest }"
               />
             </div>
             <div>
@@ -156,17 +164,19 @@
                 min="0"
                 step="0.1"
                 class="input"
-                :disabled="isGuest"
+                :readonly="isGuest"
+                :class="{ 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed': isGuest }"
               />
             </div>
           </div>
           
-          <div class="mt-3 flex items-center space-x-2">
+          <div class="mt-3 flex items-center space-x-2" :class="{ 'opacity-60 cursor-not-allowed': isGuest }">
             <input
               v-model="localData.exitRules.useTrailingStop"
               type="checkbox"
               :disabled="isGuest"
               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              :class="{ 'cursor-not-allowed': isGuest }"
             />
             <label class="text-sm text-gray-700 dark:text-gray-300">Use trailing stop</label>
           </div>
@@ -185,7 +195,8 @@
                 max="10"
                 step="0.1"
                 class="input"
-                :disabled="isGuest"
+                :readonly="isGuest"
+                :class="{ 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed': isGuest }"
               />
             </div>
             <div>
@@ -196,7 +207,8 @@
                 min="1"
                 max="20"
                 class="input"
-                :disabled="isGuest"
+                :readonly="isGuest"
+                :class="{ 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed': isGuest }"
               />
             </div>
           </div>
@@ -242,32 +254,6 @@
           >
             Reset
           </button>
-        </div>
-
-        <!-- Guest Mode Upgrade Prompt -->
-        <div v-if="isGuest" class="bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-primary-900 dark:to-secondary-900 rounded-lg p-4 text-center">
-          <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-            🔒 Unlock Full Strategy Builder
-          </h4>
-          <p class="text-xs text-gray-600 dark:text-gray-300 mb-3">
-            Sign up to customize parameters, save strategies, and run backtests
-          </p>
-          <div class="space-x-2">
-            <button 
-              @click="$router.push('/register')"
-              class="bg-primary-600 hover:bg-primary-700 text-white text-xs px-4 py-2 rounded-md font-medium"
-              type="button"
-            >
-              Sign Up Free
-            </button>
-            <button 
-              @click="$router.push('/login')"
-              class="text-primary-600 hover:text-primary-700 dark:text-primary-400 text-xs px-4 py-2"
-              type="button"
-            >
-              Log In
-            </button>
-          </div>
         </div>
       </form>
     </div>
@@ -401,4 +387,5 @@ watch(() => props.modelValue, (newValue) => {
     Object.assign(localData, newValue)
   }
 }, { deep: true })
+</script>
 </script>
