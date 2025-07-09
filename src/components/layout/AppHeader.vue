@@ -26,6 +26,7 @@ const isDropdownOpen = ref(false)
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 const isProUser = computed(() => authStore.isProUser)
 const isGuestMode = computed(() => authStore.guestMode)
+const isGuestMode = computed(() => authStore.guestMode)
 
 // Methods
 const toggleDarkMode = () => {
@@ -73,9 +74,32 @@ const navigateTo = (path: string) => {
           </router-link>
         </nav>
 
+        <!-- Guest mode actions -->
+        <div v-else class="flex space-x-2">
+          <router-link 
+            to="/login" 
+            class="text-sm text-gray-700 dark:text-white hover:text-primary-600 dark:hover:text-primary-400"
+          >
+            Log in
+          </router-link>
+          <router-link 
+            to="/register" 
+            class="btn btn-primary text-sm px-3 py-1"
+          >
+            Sign Up
+          </router-link>
+        </div>
+
         <!-- Right side -->
+        <!-- Guest mode indicator -->
+        <div v-if="isGuestMode" class="flex items-center space-x-2">
+          <span class="text-xs bg-warning-100 text-warning-800 dark:bg-warning-900 dark:text-warning-200 px-2 py-1 rounded-full">
+            Guest Mode
+          </span>
+        </div>
+
         <div class="flex items-center space-x-4">
-          <!-- Theme toggle -->
+        <div v-else-if="!isAuthenticated" class="flex space-x-4">
           <button
             @click="toggleDarkMode"
             class="p-2 rounded-md text-gray-500 dark:text-gray-400 
@@ -113,6 +137,12 @@ const navigateTo = (path: string) => {
                 class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
               >
                 Upgrade to Pro
+              </a>
+              <a
+                @click="navigateTo('/profile')"
+                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              >
+                Profile Settings
               </a>
               <a
                 @click="navigateTo('/profile')"
