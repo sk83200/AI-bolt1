@@ -1,53 +1,42 @@
 <template>
   <div class="h-full">
-    <!-- Strategies Page Layout -->
-    <div class="h-full flex">
-      <!-- Left: AI Assistant Panel -->
-      <div class="w-1/3 border-r border-gray-200 dark:border-gray-700">
-        <StrategiesAiAssistant 
-          @strategy-update="handleStrategyUpdate"
-          :is-guest="authStore.guestMode"
-        />
-      </div>
+    <!-- Strategies Page Layout with Resizable Split Panes -->
+    <Splitpanes class="h-full">
+      <!-- Left: Split pane with GUI Editor Form (top) and Messages/Notifications (bottom) -->
+      <Pane :size="60" min-size="40">
+        <Splitpanes horizontal class="h-full">
+          <!-- Top: GUI Editor Form -->
+          <Pane :size="70" min-size="40">
+            <div class="h-full bg-white dark:bg-gray-800">
+              <StrategyGuiEditor 
+                v-model="strategyData"
+                :is-guest="authStore.guestMode"
+                @update="handleFormUpdate"
+              />
+            </div>
+          </Pane>
+          
+          <!-- Bottom: Messages/Notifications Panel -->
+          <Pane :size="30" min-size="20">
+            <div class="h-full bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+              <StrategyNotifications 
+                :notifications="notifications"
+                :is-guest="authStore.guestMode"
+              />
+            </div>
+          </Pane>
+        </Splitpanes>
+      </Pane>
       
-      <!-- Right: Split Pane with GUI Editor and Output -->
-      <div class="flex-1 flex">
-        <!-- Middle: Split pane with GUI Editor Form (top) and Messages/Notifications (bottom) -->
-        <div class="w-1/2 border-r border-gray-200 dark:border-gray-700">
-          <Splitpanes horizontal class="h-full">
-            <!-- Top: GUI Editor Form -->
-            <Pane :size="70" min-size="40">
-              <div class="h-full bg-white dark:bg-gray-800">
-                <StrategyGuiEditor 
-                  v-model="strategyData"
-                  :is-guest="authStore.guestMode"
-                  @update="handleFormUpdate"
-                />
-              </div>
-            </Pane>
-            
-            <!-- Bottom: Messages/Notifications Panel -->
-            <Pane :size="30" min-size="20">
-              <div class="h-full bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-                <StrategyNotifications 
-                  :notifications="notifications"
-                  :is-guest="authStore.guestMode"
-                />
-              </div>
-            </Pane>
-          </Splitpanes>
-        </div>
-        
-        <!-- Right: Output/Code Panel -->
-        <div class="w-1/2">
-          <StrategyOutputPanel 
-            :strategy-data="strategyData"
-            :is-guest="authStore.guestMode"
-            :generated-code="generatedCode"
-          />
-        </div>
-      </div>
-    </div>
+      <!-- Right: Output/Code Panel -->
+      <Pane :size="40" min-size="30">
+        <StrategyOutputPanel 
+          :strategy-data="strategyData"
+          :is-guest="authStore.guestMode"
+          :generated-code="generatedCode"
+        />
+      </Pane>
+    </Splitpanes>
   </div>
 </template>
 
@@ -56,7 +45,6 @@ import { ref, reactive } from 'vue'
 import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
 import { useAuthStore } from '../stores/auth'
-import StrategiesAiAssistant from '../components/strategies/StrategiesAiAssistant.vue'
 import StrategyGuiEditor from '../components/strategies/StrategyGuiEditor.vue'
 import StrategyNotifications from '../components/strategies/StrategyNotifications.vue'
 import StrategyOutputPanel from '../components/strategies/StrategyOutputPanel.vue'
@@ -83,7 +71,7 @@ const strategyData = reactive({
   }
 })
 
-// Generated code from AI
+// Generated code from form changes
 const generatedCode = ref('')
 
 // Notifications
@@ -102,19 +90,6 @@ const notifications = ref([
   }
 ])
 
-// Handle strategy updates from AI Assistant
-const handleStrategyUpdate = (update: any) => {
-  Object.assign(strategyData, update)
-  
-  // Add notification
-  notifications.value.unshift({
-    id: Date.now(),
-    type: 'success',
-    message: 'Strategy updated from AI suggestions',
-    timestamp: new Date()
-  })
-}
-
 // Handle form updates
 const handleFormUpdate = (formData: any) => {
   Object.assign(strategyData, formData)
@@ -123,6 +98,14 @@ const handleFormUpdate = (formData: any) => {
   if (!authStore.guestMode) {
     generateCode()
   }
+  
+  // Add notification
+  notifications.value.unshift({
+    id: Date.now(),
+    type: 'info',
+    message: 'Strategy parameters updated',
+    timestamp: new Date()
+  })
 }
 
 // Generate code based on strategy data
@@ -143,17 +126,14 @@ class ${strategyData.name?.replace(/\s+/g, '') || 'CustomStrategy'}(Strategy):
         
     def setup_indicators(self):
         # Setup technical indicators
-        self.rsi = Indicator.RSI(period=14)
-        self.sma_20 = Indicator.SMA(period=20)
-        self.sma_50 = Indicator.SMA(period=50)
+        ${strategyData.entryRules.indicators?.map(ind => `self.${ind.toLowerCase()} = Indicator.${ind}(period=14)`).join('\n        ') || '# No indicators selected'}
         
     def entry_conditions(self, data):
         # Entry logic based on ${strategyData.type} strategy
-        return (
-            data['rsi'] > 50 and
-            data['sma_20'] > data['sma_50'] and
-            data['volume'] > data['avg_volume']
-        )
+        conditions = [
+            ${strategyData.entryRules.conditions?.map(c => `# ${c.text || 'Empty condition'}`).join('\n            ') || '# No entry conditions defined'}
+        ]
+        return all(conditions)
         
     def exit_conditions(self, data, position):
         # Exit logic
@@ -172,3 +152,24 @@ class ${strategyData.name?.replace(/\s+/g, '') || 'CustomStrategy'}(Strategy):
 `
 }
 </script>
+
+<style>
+/* Custom splitpanes styling */
+.splitpanes__splitter {
+  @apply bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors;
+}
+
+.splitpanes--vertical > .splitpanes__splitter {
+  width: 4px !important;
+  margin: 0 -2px;
+}
+
+.splitpanes--horizontal > .splitpanes__splitter {
+  height: 4px !important;
+  margin: -2px 0;
+}
+
+.splitpanes__splitter:hover {
+  @apply bg-primary-400 dark:bg-primary-600;
+}
+</style>
