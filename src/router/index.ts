@@ -25,19 +25,19 @@ export const routes = [
     path: '/trading',
     name: 'Trading',
     component: Trading
-    // Removed requiresAuth - now accessible to guests
+    // Accessible to guests with limited functionality
   },
   {
     path: '/analytics',
     name: 'Analytics',
     component: Analytics
-    // Removed requiresAuth - now accessible to guests with limited functionality
+    // Accessible to guests with limited functionality
   },
   {
     path: '/strategies',
     name: 'Strategies',
     component: Strategies
-    // Removed requiresAuth - now accessible to guests with limited functionality
+    // Accessible to guests with limited functionality
   },
   {
     path: '/profile',

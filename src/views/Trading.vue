@@ -1,7 +1,7 @@
 <template>
   <div class="h-full">
     <!-- Authenticated users: Full Strategy Builder -->
-    <div v-if="authStore.isAuthenticated" class="h-full">
+    <div v-if="authStore.isAuthenticated && !authStore.guestMode" class="h-full">
       <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Trading Strategy Builder</h1>
         <button 

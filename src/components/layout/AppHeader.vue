@@ -26,7 +26,6 @@ const isDropdownOpen = ref(false)
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 const isProUser = computed(() => authStore.isProUser)
 const isGuestMode = computed(() => authStore.guestMode)
-const isGuestMode = computed(() => authStore.guestMode)
 
 // Methods
 const toggleDarkMode = () => {
@@ -63,7 +62,7 @@ const navigateTo = (path: string) => {
         </router-link>
 
         <!-- Navigation -->
-        <nav class="hidden md:flex space-x-8">
+        <nav v-if="isAuthenticated && !isGuestMode" class="hidden md:flex space-x-8">
           <router-link 
             v-for="item in ['Dashboard', 'Trading', 'Analytics']"
             :key="item"
@@ -74,32 +73,9 @@ const navigateTo = (path: string) => {
           </router-link>
         </nav>
 
-        <!-- Guest mode actions -->
-        <div v-else class="flex space-x-2">
-          <router-link 
-            to="/login" 
-            class="text-sm text-gray-700 dark:text-white hover:text-primary-600 dark:hover:text-primary-400"
-          >
-            Log in
-          </router-link>
-          <router-link 
-            to="/register" 
-            class="btn btn-primary text-sm px-3 py-1"
-          >
-            Sign Up
-          </router-link>
-        </div>
-
         <!-- Right side -->
-        <!-- Guest mode indicator -->
-        <div v-if="isGuestMode" class="flex items-center space-x-2">
-          <span class="text-xs bg-warning-100 text-warning-800 dark:bg-warning-900 dark:text-warning-200 px-2 py-1 rounded-full">
-            Guest Mode
-          </span>
-        </div>
-
         <div class="flex items-center space-x-4">
-        <div v-else-if="!isAuthenticated" class="flex space-x-4">
+          <!-- Theme toggle -->
           <button
             @click="toggleDarkMode"
             class="p-2 rounded-md text-gray-500 dark:text-gray-400 
@@ -116,7 +92,7 @@ const navigateTo = (path: string) => {
             </span>
           </div>
 
-          <!-- User menu -->
+          <!-- User menu for authenticated users -->
           <div v-if="isAuthenticated && !isGuestMode" class="relative">
             <button
               @click="toggleDropdown"
@@ -145,12 +121,6 @@ const navigateTo = (path: string) => {
                 Profile Settings
               </a>
               <a
-                @click="navigateTo('/profile')"
-                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-              >
-                Profile Settings
-              </a>
-              <a
                 @click="logout"
                 class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
               >
@@ -159,24 +129,8 @@ const navigateTo = (path: string) => {
             </div>
           </div>
 
-          <!-- Login/Register for non-authenticated users -->
-          <div v-else-if="!isAuthenticated" class="flex space-x-4">
-            <router-link 
-              to="/login" 
-              class="text-gray-700 dark:text-white hover:text-primary-600 dark:hover:text-primary-400"
-            >
-              Log in
-            </router-link>
-            <router-link 
-              to="/register" 
-              class="btn btn-primary"
-            >
-              Register
-            </router-link>
-          </div>
-
-          <!-- Guest mode actions -->
-          <div v-else class="flex space-x-2">
+          <!-- Login/Register for non-authenticated users or guest mode -->
+          <div v-if="!isAuthenticated || isGuestMode" class="flex space-x-2">
             <router-link 
               to="/login" 
               class="text-sm text-gray-700 dark:text-white hover:text-primary-600 dark:hover:text-primary-400"
