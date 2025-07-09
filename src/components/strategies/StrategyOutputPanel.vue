@@ -53,37 +53,49 @@
     </div>
     
     <!-- Content -->
-    <div class="flex-1 overflow-hidden">
+    <div class="flex-1 overflow-hidden relative">
+      <!-- Grayed out overlay for guest mode -->
+      <div 
+        v-if="isGuest"
+        class="absolute inset-0 bg-gray-500 bg-opacity-20 z-10 pointer-events-none"
+      ></div>
+      
       <div class="h-full overflow-auto p-4">
         <!-- Code display (read-only for guests) -->
-        <div class="bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-xs overflow-auto h-full">
+        <div 
+          :class="[
+            'bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-xs overflow-auto h-full',
+            isGuest ? 'opacity-70' : ''
+          ]"
+        >
           <pre>{{ getCurrentCode() }}</pre>
         </div>
-        
-        <!-- Guest mode overlay -->
-        <div v-if="isGuest" class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div class="bg-white dark:bg-gray-800 rounded-lg p-6 text-center max-w-sm mx-4">
-            <div class="text-4xl mb-4">🔒</div>
-            <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Code Editing Restricted
-            </h4>
-            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
-              This code cannot be edited in guest mode. Sign up to customize and export your strategies.
-            </p>
-            <div class="space-y-2">
-              <button 
-                @click="$router.push('/register')"
-                class="w-full bg-primary-600 hover:bg-primary-700 text-white text-sm px-4 py-2 rounded-md font-medium"
-              >
-                Sign Up for Full Access
-              </button>
-              <button 
-                @click="$router.push('/login')"
-                class="w-full text-primary-600 hover:text-primary-700 dark:text-primary-400 text-sm px-4 py-2"
-              >
-                Log In
-              </button>
-            </div>
+      </div>
+      
+      <!-- Guest mode banner at bottom -->
+      <div 
+        v-if="isGuest"
+        class="absolute bottom-0 left-0 right-0 bg-warning-100 dark:bg-warning-900 border-t border-warning-200 dark:border-warning-800 px-4 py-3 z-20"
+      >
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <svg class="h-4 w-4 text-warning-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            <span class="text-xs font-medium text-warning-800 dark:text-warning-200">
+              Guest Mode - Code is read-only
+            </span>
+          </div>
+          <div class="flex items-center space-x-3">
+            <span class="text-xs text-warning-700 dark:text-warning-300">
+              Sign up to edit and export code
+            </span>
+            <button 
+              @click="$router.push('/register')"
+              class="bg-warning-600 hover:bg-warning-700 text-white text-xs px-3 py-1 rounded-md font-medium"
+            >
+              Sign Up Free
+            </button>
           </div>
         </div>
       </div>
