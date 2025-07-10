@@ -53,11 +53,11 @@ public class TradingPlatformMain extends JFrame {
         
         logoPanel.add(logoLabel);
         
-        // Navigation section
+        // Navigation section - Updated with Forecasts
         JPanel navPanel = new JPanel(new FlowLayout());
         navPanel.setOpaque(false);
         
-        String[] navItems = {"Strategies", "Portfolios", "Indicators", "Charts", "Alerts"};
+        String[] navItems = {"Strategies", "Portfolios", "Indicators", "Charts", "Alerts", "Forecasts"};
         for (String item : navItems) {
             JButton navButton = createNavButton(item);
             navPanel.add(navButton);
@@ -186,6 +186,22 @@ public class TradingPlatformMain extends JFrame {
         contentPanel.repaint();
     }
     
+    private void showStrategiesPage() {
+        contentPanel.removeAll();
+        StrategiesPage strategiesPage = new StrategiesPage(this, themeManager, authManager);
+        contentPanel.add(strategiesPage, BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+    
+    private void showForecastsPage() {
+        contentPanel.removeAll();
+        ForecastsPage forecastsPage = new ForecastsPage(this, themeManager, authManager);
+        contentPanel.add(forecastsPage, BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+    
     private void showPlaceholderPage(String pageName) {
         contentPanel.removeAll();
         
@@ -207,14 +223,38 @@ public class TradingPlatformMain extends JFrame {
         descLabel.setForeground(themeManager.getSecondaryText());
         descLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
-        // Add some sample content based on page
-        JPanel sampleContent = createSampleContent(pageName);
-        
-        centerPanel.add(titleLabel);
-        centerPanel.add(Box.createVerticalStrut(20));
-        centerPanel.add(descLabel);
-        centerPanel.add(Box.createVerticalStrut(40));
-        centerPanel.add(sampleContent);
+        // Add guest mode restrictions if applicable
+        if (authManager.isGuestMode()) {
+            JLabel guestLabel = new JLabel("(Guest Mode - Limited functionality)");
+            guestLabel.setFont(new Font("Arial", Font.ITALIC, 14));
+            guestLabel.setForeground(themeManager.getWarning());
+            guestLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            
+            JButton upgradeButton = new JButton("Sign Up for Full Access");
+            upgradeButton.setBackground(themeManager.getPrimary());
+            upgradeButton.setForeground(Color.WHITE);
+            upgradeButton.setBorderPainted(false);
+            upgradeButton.setFocusPainted(false);
+            upgradeButton.addActionListener(e -> showRegisterDialog());
+            upgradeButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+            
+            centerPanel.add(titleLabel);
+            centerPanel.add(Box.createVerticalStrut(20));
+            centerPanel.add(descLabel);
+            centerPanel.add(Box.createVerticalStrut(10));
+            centerPanel.add(guestLabel);
+            centerPanel.add(Box.createVerticalStrut(20));
+            centerPanel.add(upgradeButton);
+        } else {
+            // Add some sample content based on page
+            JPanel sampleContent = createSampleContent(pageName);
+            
+            centerPanel.add(titleLabel);
+            centerPanel.add(Box.createVerticalStrut(20));
+            centerPanel.add(descLabel);
+            centerPanel.add(Box.createVerticalStrut(40));
+            centerPanel.add(sampleContent);
+        }
         
         placeholder.add(centerPanel, BorderLayout.CENTER);
         contentPanel.add(placeholder, BorderLayout.CENTER);
@@ -229,14 +269,6 @@ public class TradingPlatformMain extends JFrame {
         panel.setMaximumSize(new Dimension(800, 400));
         
         switch (pageName) {
-            case "Strategies":
-                panel.add(createSampleCard("📈 Momentum Strategy", "Buy when RSI > 70, Sell when RSI < 30"));
-                panel.add(Box.createVerticalStrut(10));
-                panel.add(createSampleCard("📉 Mean Reversion", "Buy oversold assets, sell overbought"));
-                panel.add(Box.createVerticalStrut(10));
-                panel.add(createSampleCard("🎯 Trend Following", "Follow long-term market trends"));
-                break;
-                
             case "Portfolios":
                 panel.add(createSampleCard("💼 Growth Portfolio", "Tech-focused high-growth stocks"));
                 panel.add(Box.createVerticalStrut(10));
@@ -420,6 +452,10 @@ public class TradingPlatformMain extends JFrame {
         currentPage = page;
         if (page.equals("Home")) {
             showLandingPage();
+        } else if (page.equals("Strategies")) {
+            showStrategiesPage();
+        } else if (page.equals("Forecasts")) {
+            showForecastsPage();
         } else {
             showPlaceholderPage(page);
         }
