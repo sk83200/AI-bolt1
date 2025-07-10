@@ -1,15 +1,795 @@
 import javax.swing.*;
-import javax.swing.border.*;
-import javax.swing.text.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.HashMap;
+import java.util.Map;
 
-public class TradingPlatformMain {
+public class TradingPlatformMain extends JFrame {
+    private AuthManager authManager;
+    private JPanel mainContentPanel;
+    private JPanel taskbarPanel;
+    private JPanel aiAssistantPanel;
+    private JPanel guiEditorPanel;
+    private JPanel messagePanel;
+    private JPanel outputPanel;
+    private JPanel guestBannerPanel;
+    private JSplitPane mainSplitPane;
+    private JSplitPane rightSplitPane;
+    private boolean showWorkspace = false;
+    private String currentPage = "home";
+    
+    // Taskbar buttons
+    private JButton portfoliosBtn, strategiesBtn, indicatorsBtn, chartsBtn, forecastsBtn, alertsBtn;
+    
+    public TradingPlatformMain() {
+        authManager = new AuthManager();
+        initializeUI();
+        updateUIForAuthState();
+    }
+    
+    private void initializeUI() {
+        setTitle("AI Trading Platform");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(1400, 900);
+        setLocationRelativeTo(null);
+        
+        // Create main layout
+        setLayout(new BorderLayout());
+        
+        // Create header
+        add(createHeader(), BorderLayout.NORTH);
+        
+        // Create main content area
+        mainContentPanel = new JPanel(new BorderLayout());
+        add(mainContentPanel, BorderLayout.CENTER);
+        
+        // Initialize with home page
+        showHomePage();
+    }
+    
+    private JPanel createHeader() {
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(new Color(31, 41, 55)); // Dark gray
+        header.setBorder(new EmptyBorder(10, 20, 10, 20));
+        
+        // Logo
+        JPanel logoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        logoPanel.setOpaque(false);
+        JLabel logoLabel = new JLabel("AI Trader");
+        logoLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        logoLabel.setForeground(Color.WHITE);
+        logoPanel.add(logoLabel);
+        
+        // Taskbar with functionality indicators
+        taskbarPanel = createTaskbar();
+        
+        // User controls
+        JPanel userPanel = createUserControls();
+        
+        header.add(logoPanel, BorderLayout.WEST);
+        header.add(taskbarPanel, BorderLayout.CENTER);
+        header.add(userPanel, BorderLayout.EAST);
+        
+        return header;
+    }
+    
+    private JPanel createTaskbar() {
+        JPanel taskbar = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
+        taskbar.setOpaque(false);
+        
+        // Create taskbar buttons with functionality indicators
+        portfoliosBtn = createTaskbarButton("Portfolios", "📊");
+        strategiesBtn = createTaskbarButton("Strategies", "⚡");
+        indicatorsBtn = createTaskbarButton("Indicators", "📈");
+        chartsBtn = createTaskbarButton("Charts", "📉");
+        forecastsBtn = createTaskbarButton("Forecasts", "🔮");
+        alertsBtn = createTaskbarButton("Alerts", "🔔");
+        
+        // Add action listeners
+        portfoliosBtn.addActionListener(e -> handleTaskbarClick("portfolios"));
+        strategiesBtn.addActionListener(e -> handleTaskbarClick("strategies"));
+        indicatorsBtn.addActionListener(e -> handleTaskbarClick("indicators"));
+        chartsBtn.addActionListener(e -> handleTaskbarClick("charts"));
+        forecastsBtn.addActionListener(e -> handleTaskbarClick("forecasts"));
+        alertsBtn.addActionListener(e -> handleTaskbarClick("alerts"));
+        
+        taskbar.add(portfoliosBtn);
+        taskbar.add(strategiesBtn);
+        taskbar.add(indicatorsBtn);
+        taskbar.add(chartsBtn);
+        taskbar.add(forecastsBtn);
+        taskbar.add(alertsBtn);
+        
+        return taskbar;
+    }
+    
+    private JButton createTaskbarButton(String text, String icon) {
+        JButton button = new JButton("<html><center>" + icon + "<br>" + text + "</center></html>");
+        button.setPreferredSize(new Dimension(80, 50));
+        button.setBackground(new Color(79, 70, 229)); // Primary color
+        button.setForeground(Color.WHITE);
+        button.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        // Hover effect
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(67, 56, 202)); // Darker primary
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(79, 70, 229)); // Original primary
+            }
+        });
+        
+        return button;
+    }
+    
+    private JPanel createUserControls() {
+        JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        userPanel.setOpaque(false);
+        
+        if (authManager.isAuthenticated() && !authManager.isGuestMode()) {
+            // Authenticated user controls
+            JLabel userLabel = new JLabel("Welcome, " + authManager.getCurrentUser().getName());
+            userLabel.setForeground(Color.WHITE);
+            userPanel.add(userLabel);
+            
+            JButton logoutBtn = new JButton("Logout");
+            logoutBtn.addActionListener(e -> logout());
+            userPanel.add(logoutBtn);
+            
+        } else if (authManager.isGuestMode()) {
+            // Guest mode indicator
+            JLabel guestLabel = new JLabel("Guest Mode");
+            guestLabel.setForeground(new Color(251, 191, 36)); // Warning color
+            userPanel.add(guestLabel);
+            
+            JButton loginBtn = new JButton("Sign Up");
+            loginBtn.setBackground(new Color(79, 70, 229));
+            loginBtn.setForeground(Color.WHITE);
+            loginBtn.addActionListener(e -> showLoginDialog());
+            userPanel.add(loginBtn);
+            
+        } else {
+            // Non-authenticated user controls
+            JButton loginBtn = new JButton("Login");
+            loginBtn.addActionListener(e -> showLoginDialog());
+            userPanel.add(loginBtn);
+            
+            JButton registerBtn = new JButton("Sign Up");
+            registerBtn.setBackground(new Color(79, 70, 229));
+            registerBtn.setForeground(Color.WHITE);
+            registerBtn.addActionListener(e -> showRegisterDialog());
+            userPanel.add(registerBtn);
+        }
+        
+        return userPanel;
+    }
+    
+    private void handleTaskbarClick(String functionality) {
+        currentPage = functionality;
+        showWorkspace = true;
+        
+        // If not authenticated, enable guest mode
+        if (!authManager.isAuthenticated()) {
+            authManager.loginAsGuest();
+        }
+        
+        showWorkspaceLayout();
+        updateUIForAuthState();
+    }
+    
+    private void showHomePage() {
+        mainContentPanel.removeAll();
+        showWorkspace = false;
+        
+        if (authManager.isAuthenticated() && !authManager.isGuestMode()) {
+            // Authenticated user home page
+            showAuthenticatedHomePage();
+        } else {
+            // Non-authenticated user home page
+            showPublicHomePage();
+        }
+        
+        mainContentPanel.revalidate();
+        mainContentPanel.repaint();
+    }
+    
+    private void showPublicHomePage() {
+        JPanel homePanel = new JPanel(new BorderLayout());
+        homePanel.setBackground(Color.WHITE);
+        
+        // Hero section
+        JPanel heroPanel = new JPanel(new BorderLayout());
+        heroPanel.setBackground(new Color(31, 41, 55));
+        heroPanel.setBorder(new EmptyBorder(50, 50, 50, 50));
+        
+        JPanel textPanel = new JPanel(new GridBagLayout());
+        textPanel.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        
+        JLabel titleLabel = new JLabel("<html><h1 style='color: white; font-size: 36px;'>Trade Smarter with <span style='color: #F59E0B;'>AI-Powered</span> Insights</h1></html>");
+        gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.WEST;
+        textPanel.add(titleLabel, gbc);
+        
+        JLabel subtitleLabel = new JLabel("<html><p style='color: #D1D5DB; font-size: 18px; margin-top: 20px;'>Harness the power of artificial intelligence to optimize your trading strategies and maximize returns.</p></html>");
+        gbc.gridy = 1;
+        textPanel.add(subtitleLabel, gbc);
+        
+        // Call-to-action buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        buttonPanel.setOpaque(false);
+        
+        JButton getStartedBtn = new JButton("Get Started");
+        getStartedBtn.setBackground(new Color(245, 158, 11)); // Accent color
+        getStartedBtn.setForeground(Color.WHITE);
+        getStartedBtn.setPreferredSize(new Dimension(120, 40));
+        getStartedBtn.addActionListener(e -> showRegisterDialog());
+        
+        JButton loginBtn = new JButton("Log In");
+        loginBtn.setBackground(Color.WHITE);
+        loginBtn.setForeground(new Color(31, 41, 55));
+        loginBtn.setPreferredSize(new Dimension(120, 40));
+        loginBtn.addActionListener(e -> showLoginDialog());
+        
+        buttonPanel.add(getStartedBtn);
+        buttonPanel.add(Box.createHorizontalStrut(10));
+        buttonPanel.add(loginBtn);
+        
+        gbc.gridy = 2; gbc.insets = new Insets(30, 0, 0, 0);
+        textPanel.add(buttonPanel, gbc);
+        
+        heroPanel.add(textPanel, BorderLayout.WEST);
+        
+        // Chart preview (placeholder)
+        JPanel chartPanel = new JPanel();
+        chartPanel.setBackground(new Color(55, 65, 81));
+        chartPanel.setBorder(BorderFactory.createTitledBorder("Sample Chart"));
+        chartPanel.setPreferredSize(new Dimension(400, 300));
+        heroPanel.add(chartPanel, BorderLayout.EAST);
+        
+        homePanel.add(heroPanel, BorderLayout.NORTH);
+        
+        // Features section
+        JPanel featuresPanel = createFeaturesSection();
+        homePanel.add(featuresPanel, BorderLayout.CENTER);
+        
+        mainContentPanel.add(homePanel, BorderLayout.CENTER);
+    }
+    
+    private void showAuthenticatedHomePage() {
+        JPanel homePanel = new JPanel(new BorderLayout());
+        homePanel.setBackground(Color.WHITE);
+        
+        // Welcome section
+        JPanel welcomePanel = new JPanel(new BorderLayout());
+        welcomePanel.setBackground(new Color(31, 41, 55));
+        welcomePanel.setBorder(new EmptyBorder(50, 50, 50, 50));
+        
+        JLabel welcomeLabel = new JLabel("<html><h1 style='color: white; font-size: 32px;'>Welcome back, " + authManager.getCurrentUser().getName() + "</h1></html>");
+        JLabel subtitleLabel = new JLabel("<html><p style='color: #D1D5DB; font-size: 18px;'>Continue building your AI-powered trading strategies.</p></html>");
+        
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        buttonPanel.setOpaque(false);
+        
+        JButton dashboardBtn = new JButton("Go to Dashboard");
+        dashboardBtn.setBackground(new Color(245, 158, 11));
+        dashboardBtn.setForeground(Color.WHITE);
+        dashboardBtn.setPreferredSize(new Dimension(150, 40));
+        dashboardBtn.addActionListener(e -> navigateToPage("dashboard"));
+        
+        JButton strategiesBtn = new JButton("Strategy Builder");
+        strategiesBtn.setBackground(Color.WHITE);
+        strategiesBtn.setForeground(new Color(31, 41, 55));
+        strategiesBtn.setPreferredSize(new Dimension(150, 40));
+        strategiesBtn.addActionListener(e -> handleTaskbarClick("strategies"));
+        
+        buttonPanel.add(dashboardBtn);
+        buttonPanel.add(Box.createHorizontalStrut(10));
+        buttonPanel.add(strategiesBtn);
+        
+        JPanel textPanel = new JPanel(new GridBagLayout());
+        textPanel.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.anchor = GridBagConstraints.WEST;
+        
+        gbc.gridx = 0; gbc.gridy = 0;
+        textPanel.add(welcomeLabel, gbc);
+        gbc.gridy = 1; gbc.insets = new Insets(10, 0, 0, 0);
+        textPanel.add(subtitleLabel, gbc);
+        gbc.gridy = 2; gbc.insets = new Insets(30, 0, 0, 0);
+        textPanel.add(buttonPanel, gbc);
+        
+        welcomePanel.add(textPanel, BorderLayout.WEST);
+        
+        homePanel.add(welcomePanel, BorderLayout.NORTH);
+        homePanel.add(createFeaturesSection(), BorderLayout.CENTER);
+        
+        mainContentPanel.add(homePanel, BorderLayout.CENTER);
+    }
+    
+    private JPanel createFeaturesSection() {
+        JPanel featuresPanel = new JPanel(new GridLayout(1, 3, 20, 20));
+        featuresPanel.setBorder(new EmptyBorder(50, 50, 50, 50));
+        featuresPanel.setBackground(Color.WHITE);
+        
+        // Feature cards
+        String[] features = {
+            "Advanced Analytics|Gain insights with powerful analytics tools and real-time market data visualization.",
+            "Smart Trading|Execute trades with confidence using AI-driven recommendations and intelligent automation.",
+            "AI Assistant|Get personalized trading suggestions and market analysis from our advanced AI system."
+        };
+        
+        for (String feature : features) {
+            String[] parts = feature.split("\\|");
+            JPanel card = createFeatureCard(parts[0], parts[1]);
+            featuresPanel.add(card);
+        }
+        
+        return featuresPanel;
+    }
+    
+    private JPanel createFeatureCard(String title, String description) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(229, 231, 235)),
+            new EmptyBorder(20, 20, 20, 20)
+        ));
+        
+        JLabel titleLabel = new JLabel("<html><h3>" + title + "</h3></html>");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        
+        JLabel descLabel = new JLabel("<html><p style='color: #6B7280;'>" + description + "</p></html>");
+        
+        card.add(titleLabel, BorderLayout.NORTH);
+        card.add(descLabel, BorderLayout.CENTER);
+        
+        return card;
+    }
+    
+    private void showWorkspaceLayout() {
+        mainContentPanel.removeAll();
+        
+        // Create guest banner if in guest mode
+        if (authManager.isGuestMode()) {
+            guestBannerPanel = createGuestBanner();
+            mainContentPanel.add(guestBannerPanel, BorderLayout.NORTH);
+        }
+        
+        // Create main workspace
+        if (authManager.isAuthenticated() && !authManager.isGuestMode()) {
+            // Full workspace for authenticated users
+            createFullWorkspace();
+        } else {
+            // Limited workspace for guests
+            createGuestWorkspace();
+        }
+        
+        mainContentPanel.revalidate();
+        mainContentPanel.repaint();
+    }
+    
+    private JPanel createGuestBanner() {
+        JPanel banner = new JPanel(new BorderLayout());
+        banner.setBackground(new Color(254, 243, 199)); // Light yellow
+        banner.setBorder(new EmptyBorder(10, 20, 10, 20));
+        
+        JLabel messageLabel = new JLabel("⚠️ You're in Guest Mode. Sign up to run backtests, analyze performance, and save your work.");
+        messageLabel.setForeground(new Color(146, 64, 14)); // Dark yellow
+        
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.setOpaque(false);
+        
+        JButton signUpBtn = new JButton("Sign Up Free");
+        signUpBtn.setBackground(new Color(79, 70, 229));
+        signUpBtn.setForeground(Color.WHITE);
+        signUpBtn.addActionListener(e -> showRegisterDialog());
+        
+        JButton closeBtn = new JButton("×");
+        closeBtn.setBackground(Color.TRANSPARENT);
+        closeBtn.setBorder(BorderFactory.createEmptyBorder());
+        closeBtn.addActionListener(e -> {
+            mainContentPanel.remove(guestBannerPanel);
+            mainContentPanel.revalidate();
+            mainContentPanel.repaint();
+        });
+        
+        buttonPanel.add(signUpBtn);
+        buttonPanel.add(closeBtn);
+        
+        banner.add(messageLabel, BorderLayout.WEST);
+        banner.add(buttonPanel, BorderLayout.EAST);
+        
+        return banner;
+    }
+    
+    private void createFullWorkspace() {
+        // Create panels
+        guiEditorPanel = createGuiEditorPanel(false);
+        messagePanel = createMessagePanel(false);
+        outputPanel = createOutputPanel(false);
+        
+        // Create split panes
+        rightSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, messagePanel, outputPanel);
+        rightSplitPane.setDividerLocation(200);
+        rightSplitPane.setResizeWeight(0.4);
+        
+        mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, guiEditorPanel, rightSplitPane);
+        mainSplitPane.setDividerLocation(800);
+        mainSplitPane.setResizeWeight(0.6);
+        
+        mainContentPanel.add(mainSplitPane, BorderLayout.CENTER);
+    }
+    
+    private void createGuestWorkspace() {
+        // Create panels with guest restrictions
+        aiAssistantPanel = createAiAssistantPanel(true);
+        guiEditorPanel = createGuiEditorPanel(true);
+        messagePanel = createMessagePanel(true);
+        outputPanel = createOutputPanel(true);
+        
+        // Create split panes
+        rightSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, messagePanel, outputPanel);
+        rightSplitPane.setDividerLocation(150);
+        rightSplitPane.setResizeWeight(0.4);
+        
+        JSplitPane centerSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, guiEditorPanel, rightSplitPane);
+        centerSplitPane.setDividerLocation(500);
+        centerSplitPane.setResizeWeight(0.7);
+        
+        mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, aiAssistantPanel, centerSplitPane);
+        mainSplitPane.setDividerLocation(300);
+        mainSplitPane.setResizeWeight(0.3);
+        
+        mainContentPanel.add(mainSplitPane, BorderLayout.CENTER);
+    }
+    
+    private JPanel createAiAssistantPanel(boolean isGuest) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("AI Assistant" + (isGuest ? " (Guest Mode)" : "")));
+        panel.setBackground(Color.WHITE);
+        
+        // Chat area
+        JTextArea chatArea = new JTextArea();
+        chatArea.setEditable(false);
+        chatArea.setBackground(new Color(249, 250, 251));
+        chatArea.setText("AI Assistant: Hello! I'm your AI trading assistant" + 
+                        (isGuest ? " in guest mode. I can provide sample strategies and general guidance. For full features, please sign up!" : 
+                         ". How can I help you build your trading strategy today?"));
+        
+        JScrollPane chatScroll = new JScrollPane(chatArea);
+        chatScroll.setPreferredSize(new Dimension(280, 300));
+        
+        // Input area
+        JPanel inputPanel = new JPanel(new BorderLayout());
+        JTextField inputField = new JTextField();
+        inputField.setEnabled(!isGuest);
+        if (isGuest) {
+            inputField.setText("Sign up for full AI capabilities");
+            inputField.setBackground(new Color(243, 244, 246));
+        }
+        
+        JButton sendBtn = new JButton("Send");
+        sendBtn.setEnabled(!isGuest);
+        if (isGuest) {
+            sendBtn.addActionListener(e -> showRegisterDialog());
+        }
+        
+        inputPanel.add(inputField, BorderLayout.CENTER);
+        inputPanel.add(sendBtn, BorderLayout.EAST);
+        
+        panel.add(chatScroll, BorderLayout.CENTER);
+        panel.add(inputPanel, BorderLayout.SOUTH);
+        
+        return panel;
+    }
+    
+    private JPanel createGuiEditorPanel(boolean isGuest) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("Strategy Builder" + (isGuest ? " (Read-only)" : "")));
+        panel.setBackground(Color.WHITE);
+        
+        // Create form components
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+        
+        // Strategy Name
+        gbc.gridx = 0; gbc.gridy = 0;
+        formPanel.add(new JLabel("Strategy Name:"), gbc);
+        gbc.gridx = 1;
+        JTextField nameField = new JTextField(isGuest ? "Sample Momentum Strategy" : "", 20);
+        nameField.setEnabled(!isGuest);
+        if (isGuest) nameField.setBackground(new Color(243, 244, 246));
+        formPanel.add(nameField, gbc);
+        
+        // Strategy Type
+        gbc.gridx = 0; gbc.gridy = 1;
+        formPanel.add(new JLabel("Strategy Type:"), gbc);
+        gbc.gridx = 1;
+        JComboBox<String> typeCombo = new JComboBox<>(new String[]{"Momentum", "Mean Reversion", "Trend Following", "Breakout"});
+        typeCombo.setEnabled(!isGuest);
+        formPanel.add(typeCombo, gbc);
+        
+        // Asset Class
+        gbc.gridx = 0; gbc.gridy = 2;
+        formPanel.add(new JLabel("Asset Class:"), gbc);
+        gbc.gridx = 1;
+        JComboBox<String> assetCombo = new JComboBox<>(new String[]{"Stocks", "Crypto", "Forex", "Commodities"});
+        assetCombo.setEnabled(!isGuest);
+        formPanel.add(assetCombo, gbc);
+        
+        // Entry Rules
+        gbc.gridx = 0; gbc.gridy = 3;
+        formPanel.add(new JLabel("Entry Rules:"), gbc);
+        gbc.gridx = 1;
+        JTextArea entryRules = new JTextArea(isGuest ? "RSI > 70\nPrice > SMA20\nVolume > 1.5x average" : "", 3, 20);
+        entryRules.setEnabled(!isGuest);
+        if (isGuest) entryRules.setBackground(new Color(243, 244, 246));
+        formPanel.add(new JScrollPane(entryRules), gbc);
+        
+        // Exit Rules
+        gbc.gridx = 0; gbc.gridy = 4;
+        formPanel.add(new JLabel("Exit Rules:"), gbc);
+        gbc.gridx = 1;
+        JTextArea exitRules = new JTextArea(isGuest ? "Profit Target: 5%\nStop Loss: 2%\nTrailing Stop: No" : "", 3, 20);
+        exitRules.setEnabled(!isGuest);
+        if (isGuest) exitRules.setBackground(new Color(243, 244, 246));
+        formPanel.add(new JScrollPane(exitRules), gbc);
+        
+        // Buttons
+        gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 2;
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        
+        JButton saveBtn = new JButton(isGuest ? "Save (Sign up required)" : "Save Strategy");
+        saveBtn.setEnabled(!isGuest);
+        if (isGuest) saveBtn.addActionListener(e -> showRegisterDialog());
+        
+        JButton backtestBtn = new JButton(isGuest ? "Backtest (Sign up required)" : "Run Backtest");
+        backtestBtn.setEnabled(!isGuest);
+        if (isGuest) backtestBtn.addActionListener(e -> showRegisterDialog());
+        
+        buttonPanel.add(saveBtn);
+        buttonPanel.add(backtestBtn);
+        formPanel.add(buttonPanel, gbc);
+        
+        // Add grayed overlay for guest mode
+        if (isGuest) {
+            JPanel overlay = new JPanel();
+            overlay.setBackground(new Color(128, 128, 128, 50)); // Semi-transparent gray
+            panel.setLayout(new OverlayLayout(panel));
+            panel.add(overlay);
+        }
+        
+        panel.add(new JScrollPane(formPanel), BorderLayout.CENTER);
+        
+        return panel;
+    }
+    
+    private JPanel createMessagePanel(boolean isGuest) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("Messages & Notifications"));
+        panel.setBackground(Color.WHITE);
+        
+        JTextArea messageArea = new JTextArea();
+        messageArea.setEditable(false);
+        messageArea.setBackground(new Color(249, 250, 251));
+        
+        String messages = "✓ Strategy builder loaded successfully\n";
+        if (isGuest) {
+            messages += "⚠️ Guest mode: Save and backtest features are disabled\n";
+            messages += "📌 Sign up for full functionality";
+        } else {
+            messages += "✓ Ready to build strategies\n";
+            messages += "💡 Use AI assistant for suggestions";
+        }
+        
+        messageArea.setText(messages);
+        
+        JScrollPane scroll = new JScrollPane(messageArea);
+        panel.add(scroll, BorderLayout.CENTER);
+        
+        return panel;
+    }
+    
+    private JPanel createOutputPanel(boolean isGuest) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("Strategy Output"));
+        panel.setBackground(Color.WHITE);
+        
+        // Language tabs
+        JPanel tabPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton jsonTab = new JButton("JSON");
+        JButton pythonTab = new JButton("Python");
+        JButton javaTab = new JButton("Java");
+        
+        tabPanel.add(jsonTab);
+        tabPanel.add(pythonTab);
+        tabPanel.add(javaTab);
+        
+        // Code area
+        JTextArea codeArea = new JTextArea();
+        codeArea.setEditable(false);
+        codeArea.setBackground(new Color(17, 24, 39)); // Dark background
+        codeArea.setForeground(new Color(34, 197, 94)); // Green text
+        codeArea.setFont(new Font("Courier New", Font.PLAIN, 12));
+        
+        String sampleCode = isGuest ? 
+            "{\n  \"strategy\": {\n    \"name\": \"Sample Momentum Strategy\",\n    \"type\": \"momentum\",\n    \"entryRules\": [\n      \"RSI > 70\",\n      \"Price > SMA20\"\n    ]\n  }\n}\n\n// Sign up to generate custom code!" :
+            "// Generated strategy code will appear here\n// Save your strategy to see the output";
+        
+        codeArea.setText(sampleCode);
+        
+        JScrollPane codeScroll = new JScrollPane(codeArea);
+        
+        panel.add(tabPanel, BorderLayout.NORTH);
+        panel.add(codeScroll, BorderLayout.CENTER);
+        
+        // Guest mode banner
+        if (isGuest) {
+            JPanel guestPanel = new JPanel(new BorderLayout());
+            guestPanel.setBackground(new Color(254, 243, 199));
+            guestPanel.setBorder(new EmptyBorder(5, 10, 5, 10));
+            
+            JLabel guestLabel = new JLabel("⚠️ Guest Mode - Code is read-only. Sign up to edit and export code.");
+            guestLabel.setForeground(new Color(146, 64, 14));
+            
+            JButton signUpBtn = new JButton("Sign Up Free");
+            signUpBtn.setBackground(new Color(245, 158, 11));
+            signUpBtn.setForeground(Color.WHITE);
+            signUpBtn.addActionListener(e -> showRegisterDialog());
+            
+            guestPanel.add(guestLabel, BorderLayout.WEST);
+            guestPanel.add(signUpBtn, BorderLayout.EAST);
+            
+            panel.add(guestPanel, BorderLayout.SOUTH);
+        }
+        
+        return panel;
+    }
+    
+    private void showLoginDialog() {
+        JDialog dialog = new JDialog(this, "Login", true);
+        dialog.setSize(400, 300);
+        dialog.setLocationRelativeTo(this);
+        
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        
+        JTextField emailField = new JTextField(20);
+        JPasswordField passwordField = new JPasswordField(20);
+        
+        gbc.gridx = 0; gbc.gridy = 0;
+        panel.add(new JLabel("Email:"), gbc);
+        gbc.gridx = 1;
+        panel.add(emailField, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 1;
+        panel.add(new JLabel("Password:"), gbc);
+        gbc.gridx = 1;
+        panel.add(passwordField, gbc);
+        
+        JButton loginBtn = new JButton("Login");
+        loginBtn.addActionListener(e -> {
+            if (authManager.login(emailField.getText(), new String(passwordField.getPassword()))) {
+                dialog.dispose();
+                updateUIForAuthState();
+                if (showWorkspace) {
+                    showWorkspaceLayout();
+                } else {
+                    showHomePage();
+                }
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Invalid credentials");
+            }
+        });
+        
+        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2;
+        panel.add(loginBtn, gbc);
+        
+        dialog.add(panel);
+        dialog.setVisible(true);
+    }
+    
+    private void showRegisterDialog() {
+        JDialog dialog = new JDialog(this, "Register", true);
+        dialog.setSize(400, 350);
+        dialog.setLocationRelativeTo(this);
+        
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        
+        JTextField nameField = new JTextField(20);
+        JTextField emailField = new JTextField(20);
+        JPasswordField passwordField = new JPasswordField(20);
+        
+        gbc.gridx = 0; gbc.gridy = 0;
+        panel.add(new JLabel("Name:"), gbc);
+        gbc.gridx = 1;
+        panel.add(nameField, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 1;
+        panel.add(new JLabel("Email:"), gbc);
+        gbc.gridx = 1;
+        panel.add(emailField, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 2;
+        panel.add(new JLabel("Password:"), gbc);
+        gbc.gridx = 1;
+        panel.add(passwordField, gbc);
+        
+        JButton registerBtn = new JButton("Register");
+        registerBtn.addActionListener(e -> {
+            if (authManager.register(nameField.getText(), emailField.getText(), new String(passwordField.getPassword()))) {
+                dialog.dispose();
+                updateUIForAuthState();
+                if (showWorkspace) {
+                    showWorkspaceLayout();
+                } else {
+                    showHomePage();
+                }
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Registration failed");
+            }
+        });
+        
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
+        panel.add(registerBtn, gbc);
+        
+        dialog.add(panel);
+        dialog.setVisible(true);
+    }
+    
+    private void logout() {
+        authManager.logout();
+        showWorkspace = false;
+        currentPage = "home";
+        updateUIForAuthState();
+        showHomePage();
+    }
+    
+    private void navigateToPage(String page) {
+        currentPage = page;
+        // Implementation for different pages
+        JOptionPane.showMessageDialog(this, "Navigating to " + page);
+    }
+    
+    private void updateUIForAuthState() {
+        // Update header
+        remove(getContentPane().getComponent(0)); // Remove old header
+        add(createHeader(), BorderLayout.NORTH, 0); // Add new header
+        
+        // Update taskbar button states based on authentication
+        boolean isAuthenticated = authManager.isAuthenticated() && !authManager.isGuestMode();
+        
+        portfoliosBtn.setEnabled(true);
+        strategiesBtn.setEnabled(true);
+        indicatorsBtn.setEnabled(true);
+        chartsBtn.setEnabled(true);
+        forecastsBtn.setEnabled(true);
+        alertsBtn.setEnabled(true);
+        
+        // Add tooltips for guest mode
+        if (authManager.isGuestMode()) {
+            portfoliosBtn.setToolTipText("Limited functionality in guest mode");
+            strategiesBtn.setToolTipText("Limited functionality in guest mode");
+            indicatorsBtn.setToolTipText("Limited functionality in guest mode");
+            chartsBtn.setToolTipText("Limited functionality in guest mode");
+            forecastsBtn.setToolTipText("Limited functionality in guest mode");
+            alertsBtn.setToolTipText("Limited functionality in guest mode");
+        }
+        
+        revalidate();
+        repaint();
+    }
+    
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
@@ -17,1612 +797,74 @@ public class TradingPlatformMain {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            new TradingPlatform().setVisible(true);
+            
+            new TradingPlatformMain().setVisible(true);
         });
     }
 }
 
-class TradingPlatform extends JFrame {
-    private AuthenticationManager authManager;
-    private WorkspaceManager workspaceManager;
-    private boolean isDarkMode = false;
-    private JPanel mainPanel;
-    private CardLayout cardLayout;
-    private JMenuBar menuBar;
-    private JPanel guestBanner;
-    private boolean hasUserEngaged = false;
-    private boolean showCenteredAssistant = true;
-    
-    public TradingPlatform() {
-        authManager = new AuthenticationManager();
-        workspaceManager = new WorkspaceManager();
-        
-        initializeUI();
-        setupEventHandlers();
-        showInitialView();
-    }
-    
-    // Add the missing handleUserEngagement method
-    public void handleUserEngagement() {
-        hasUserEngaged = true;
-        showCenteredAssistant = false;
-        
-        // Transition to full workspace
-        if (authManager.isAuthenticated() && !authManager.isGuestMode()) {
-            navigateToPage("dashboard");
-        } else {
-            // For guest users, go to strategies page
-            navigateToPage("strategies");
-        }
-        
-        // Update UI to reflect engagement
-        updateUIForEngagement();
-    }
-    
-    // Add method to handle login from centered assistant
-    public void handleLoginFromAssistant() {
-        showLoginDialog();
-    }
-    
-    // Add method to update UI after user engagement
-    private void updateUIForEngagement() {
-        // Recreate content panels to reflect engagement state
-        mainPanel.removeAll();
-        createContentPanels();
-        mainPanel.revalidate();
-        mainPanel.repaint();
-    }
-    
-    // Add method to check if we should show centered assistant
-    private boolean shouldShowCenteredAssistant() {
-        // Show centered assistant if:
-        // 1. User is authenticated (not guest)
-        // 2. User hasn't engaged yet
-        // 3. No workspace state exists
-        return authManager.isAuthenticated() && 
-               !authManager.isGuestMode() && 
-               !hasUserEngaged && 
-               !workspaceManager.hasWorkspaceState();
-    }
-    
-    private void initializeUI() {
-        setTitle("AI Trader - Professional Trading Platform");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setExtendedState(JFrame.MAXIMIZED_BOTH);
-        
-        // Create main layout
-        cardLayout = new CardLayout();
-        mainPanel = new JPanel(cardLayout);
-        
-        // Create header
-        createHeader();
-        
-        // Create guest banner (initially hidden)
-        createGuestBanner();
-        
-        // Create main content panels
-        createContentPanels();
-        
-        // Layout
-        setLayout(new BorderLayout());
-        add(menuBar, BorderLayout.NORTH);
-        
-        JPanel contentWrapper = new JPanel(new BorderLayout());
-        contentWrapper.add(guestBanner, BorderLayout.NORTH);
-        contentWrapper.add(mainPanel, BorderLayout.CENTER);
-        add(contentWrapper, BorderLayout.CENTER);
-        
-        applyTheme();
-    }
-    
-    private void createHeader() {
-        menuBar = new JMenuBar();
-        menuBar.setPreferredSize(new Dimension(0, 60));
-        
-        // Logo
-        JLabel logo = new JLabel("AI Trader");
-        logo.setFont(new Font("Arial", Font.BOLD, 24));
-        logo.setForeground(new Color(79, 70, 229)); // Primary color
-        logo.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 20));
-        
-        // Navigation menu
-        JPanel navPanel = new JPanel(new FlowLayout());
-        String[] navItems = {"Strategies", "Portfolios", "Indicators", "Charts", "Alerts"};
-        
-        for (String item : navItems) {
-            JButton navButton = new JButton(item);
-            navButton.setBorderPainted(false);
-            navButton.setContentAreaFilled(false);
-            navButton.setFocusPainted(false);
-            navButton.addActionListener(e -> navigateToPage(item.toLowerCase()));
-            navPanel.add(navButton);
-        }
-        
-        // Right side controls
-        JPanel rightPanel = new JPanel(new FlowLayout());
-        
-        // Theme toggle
-        JButton themeToggle = new JButton("🌙");
-        themeToggle.setBorderPainted(false);
-        themeToggle.setContentAreaFilled(false);
-        themeToggle.addActionListener(e -> toggleTheme());
-        rightPanel.add(themeToggle);
-        
-        // User controls (dynamic based on auth state)
-        updateUserControls(rightPanel);
-        
-        // Layout header
-        menuBar.setLayout(new BorderLayout());
-        menuBar.add(logo, BorderLayout.WEST);
-        menuBar.add(navPanel, BorderLayout.CENTER);
-        menuBar.add(rightPanel, BorderLayout.EAST);
-    }
-    
-    private void createGuestBanner() {
-        guestBanner = new JPanel(new BorderLayout());
-        guestBanner.setBackground(new Color(239, 246, 255)); // Light blue
-        guestBanner.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        guestBanner.setVisible(false); // Initially hidden
-        
-        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        leftPanel.setOpaque(false);
-        
-        JLabel infoIcon = new JLabel("ℹ️");
-        JLabel message = new JLabel("You're in Guest Mode. Sign up to run backtests, analyze performance, and save your work.");
-        message.setFont(new Font("Arial", Font.PLAIN, 14));
-        
-        leftPanel.add(infoIcon);
-        leftPanel.add(message);
-        
-        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        rightPanel.setOpaque(false);
-        
-        JButton signUpButton = new JButton("Sign Up Free");
-        signUpButton.setBackground(new Color(79, 70, 229));
-        signUpButton.setForeground(Color.WHITE);
-        signUpButton.setBorderPainted(false);
-        signUpButton.setFocusPainted(false);
-        signUpButton.addActionListener(e -> showRegisterDialog());
-        
-        JButton closeButton = new JButton("✕");
-        closeButton.setBorderPainted(false);
-        closeButton.setContentAreaFilled(false);
-        closeButton.addActionListener(e -> guestBanner.setVisible(false));
-        
-        rightPanel.add(signUpButton);
-        rightPanel.add(closeButton);
-        
-        guestBanner.add(leftPanel, BorderLayout.WEST);
-        guestBanner.add(rightPanel, BorderLayout.EAST);
-    }
-    
-    private void createContentPanels() {
-        // Clear existing panels
-        mainPanel.removeAll();
-        
-        // Determine which view to show based on auth state and engagement
-        if (shouldShowCenteredAssistant()) {
-            // Show centered AI assistant for new authenticated users
-            mainPanel.add(createCenteredAIAssistant(), "centered_ai");
-        } else if (!authManager.isAuthenticated()) {
-            // Home page with AI input for non-authenticated users
-            mainPanel.add(createHomePage(), "home");
-        } else if (authManager.isGuestMode()) {
-            // Guest mode - show strategies page
-            mainPanel.add(createStrategiesPage(), "strategies");
-        } else {
-            // Full workspace for authenticated users
-            mainPanel.add(createFullWorkspace(), "workspace");
-            
-            // Also add other pages
-            mainPanel.add(createDashboard(), "dashboard");
-            mainPanel.add(createStrategiesPage(), "strategies");
-            
-            // Other pages
-            for (String page : Arrays.asList("portfolios", "indicators", "charts", "alerts")) {
-                mainPanel.add(createPlaceholderPage(page), page);
-            }
-        }
-    }
-    
-    private JPanel createCenteredAIAssistant() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(new Color(248, 250, 252)); // Light gray background
-        
-        // Main content centered
-        JPanel centerPanel = new JPanel(new GridBagLayout());
-        centerPanel.setOpaque(false);
-        
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(20, 20, 20, 20);
-        
-        // Welcome section
-        JPanel welcomePanel = new JPanel();
-        welcomePanel.setLayout(new BoxLayout(welcomePanel, BoxLayout.Y_AXIS));
-        welcomePanel.setOpaque(false);
-        
-        // Icon
-        JLabel iconLabel = new JLabel("💡");
-        iconLabel.setFont(new Font("Arial", Font.PLAIN, 48));
-        iconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
-        // Title
-        JLabel titleLabel = new JLabel("Welcome to AI Trader");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 32));
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
-        // Subtitle
-        JLabel subtitleLabel = new JLabel("Describe your trading strategy and I'll help you build it");
-        subtitleLabel.setFont(new Font("Arial", Font.PLAIN, 18));
-        subtitleLabel.setForeground(Color.GRAY);
-        subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
-        welcomePanel.add(iconLabel);
-        welcomePanel.add(Box.createVerticalStrut(20));
-        welcomePanel.add(titleLabel);
-        welcomePanel.add(Box.createVerticalStrut(10));
-        welcomePanel.add(subtitleLabel);
-        
-        // Chat interface
-        JPanel chatPanel = new JPanel(new BorderLayout());
-        chatPanel.setBackground(Color.WHITE);
-        chatPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(229, 231, 235)),
-            BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-        chatPanel.setPreferredSize(new Dimension(800, 500));
-        
-        // Chat messages area
-        JTextArea chatArea = new JTextArea();
-        chatArea.setEditable(false);
-        chatArea.setLineWrap(true);
-        chatArea.setWrapStyleWord(true);
-        chatArea.setFont(new Font("Arial", Font.PLAIN, 14));
-        chatArea.setText("Hello! I'm your AI trading assistant. How can I help you today?\n\n");
-        
-        JScrollPane chatScroll = new JScrollPane(chatArea);
-        chatScroll.setPreferredSize(new Dimension(760, 300));
-        chatScroll.setBorder(BorderFactory.createEmptyBorder());
-        
-        // Input area
-        JPanel inputPanel = new JPanel(new BorderLayout());
-        inputPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
-        
-        JTextArea inputArea = new JTextArea(3, 50);
-        inputArea.setLineWrap(true);
-        inputArea.setWrapStyleWord(true);
-        inputArea.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Color.GRAY),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
-        inputArea.setFont(new Font("Arial", Font.PLAIN, 14));
-        
-        JButton sendButton = new JButton("Send");
-        sendButton.setBackground(new Color(79, 70, 229));
-        sendButton.setForeground(Color.WHITE);
-        sendButton.setBorderPainted(false);
-        sendButton.setFocusPainted(false);
-        sendButton.setPreferredSize(new Dimension(80, 60));
-        
-        // Send button action
-        sendButton.addActionListener(e -> {
-            String input = inputArea.getText().trim();
-            if (!input.isEmpty()) {
-                chatArea.append("You: " + input + "\n\n");
-                inputArea.setText("");
-                
-                // Trigger user engagement
-                handleUserEngagement();
-                
-                // Simulate AI response
-                SwingWorker<String, Void> worker = new SwingWorker<String, Void>() {
-                    @Override
-                    protected String doInBackground() throws Exception {
-                        Thread.sleep(1000);
-                        return "I'll help you build that strategy! Let me take you to the strategy builder...";
-                    }
-                    
-                    @Override
-                    protected void done() {
-                        try {
-                            String response = get();
-                            chatArea.append("AI: " + response + "\n\n");
-                            chatArea.setCaretPosition(chatArea.getDocument().getLength());
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
-                    }
-                };
-                worker.execute();
-            }
-        });
-        
-        // Quick prompts
-        JPanel promptsPanel = new JPanel(new FlowLayout());
-        String[] prompts = {"Momentum strategy for tech stocks", "Low-risk dividend portfolio", 
-                           "Crypto swing trading strategy", "Market volatility hedge"};
-        
-        for (String prompt : prompts) {
-            JButton promptButton = new JButton(prompt);
-            promptButton.setBorderPainted(false);
-            promptButton.setContentAreaFilled(false);
-            promptButton.setForeground(new Color(79, 70, 229));
-            promptButton.addActionListener(e -> {
-                inputArea.setText(prompt);
-                sendButton.doClick();
-            });
-            promptsPanel.add(promptButton);
-        }
-        
-        JScrollPane inputScroll = new JScrollPane(inputArea);
-        inputScroll.setBorder(BorderFactory.createEmptyBorder());
-        
-        inputPanel.add(inputScroll, BorderLayout.CENTER);
-        inputPanel.add(sendButton, BorderLayout.EAST);
-        
-        chatPanel.add(chatScroll, BorderLayout.CENTER);
-        chatPanel.add(inputPanel, BorderLayout.SOUTH);
-        
-        // Feature preview
-        JLabel featureLabel = new JLabel("✨ AI Strategy Builder  📊 Backtesting  📈 Performance Analytics  🔄 Portfolio Optimization");
-        featureLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        featureLabel.setForeground(Color.GRAY);
-        featureLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        
-        // Layout
-        gbc.gridy = 0;
-        centerPanel.add(welcomePanel, gbc);
-        gbc.gridy = 1;
-        centerPanel.add(chatPanel, gbc);
-        gbc.gridy = 2;
-        centerPanel.add(promptsPanel, gbc);
-        gbc.gridy = 3;
-        centerPanel.add(featureLabel, gbc);
-        
-        panel.add(centerPanel, BorderLayout.CENTER);
-        
-        return panel;
-    }
-    
-    private JPanel createFullWorkspace() {
-        // Create full workspace with split panes for authenticated users
-        JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        mainSplit.setDividerLocation(400);
-        mainSplit.setResizeWeight(0.3);
-        
-        // Left: AI Assistant
-        JPanel aiPanel = createFullAIAssistant();
-        
-        // Right: Main content area
-        JPanel contentArea = new JPanel(new BorderLayout());
-        JLabel contentLabel = new JLabel("Main Content Area - Strategy Builder, Analytics, etc.", SwingConstants.CENTER);
-        contentLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        contentArea.add(contentLabel, BorderLayout.CENTER);
-        
-        mainSplit.setLeftComponent(aiPanel);
-        mainSplit.setRightComponent(contentArea);
-        
-        return mainSplit;
-    }
-    
-    private JPanel createFullAIAssistant() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("AI Trading Assistant"));
-        
-        // Chat area
-        JTextArea chatArea = new JTextArea();
-        chatArea.setEditable(false);
-        chatArea.setLineWrap(true);
-        chatArea.setWrapStyleWord(true);
-        chatArea.setText("Hello! I'm your AI trading assistant. I can help you build, optimize, and analyze trading strategies. What would you like to work on?\n\n");
-        
-        JScrollPane chatScroll = new JScrollPane(chatArea);
-        chatScroll.setPreferredSize(new Dimension(380, 400));
-        
-        // Input area
-        JPanel inputPanel = new JPanel(new BorderLayout());
-        JTextArea inputArea = new JTextArea(2, 30);
-        inputArea.setLineWrap(true);
-        inputArea.setWrapStyleWord(true);
-        inputArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        
-        JButton sendButton = new JButton("Send");
-        sendButton.addActionListener(e -> {
-            String input = inputArea.getText().trim();
-            if (!input.isEmpty()) {
-                chatArea.append("You: " + input + "\n\n");
-                inputArea.setText("");
-                
-                // Simulate AI response
-                SwingWorker<String, Void> worker = new SwingWorker<String, Void>() {
-                    @Override
-                    protected String doInBackground() throws Exception {
-                        Thread.sleep(1000);
-                        return generateFullResponse(input);
-                    }
-                    
-                    @Override
-                    protected void done() {
-                        try {
-                            String response = get();
-                            chatArea.append("AI: " + response + "\n\n");
-                            chatArea.setCaretPosition(chatArea.getDocument().getLength());
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
-                    }
-                };
-                worker.execute();
-            }
-        });
-        
-        JScrollPane inputScroll = new JScrollPane(inputArea);
-        inputPanel.add(inputScroll, BorderLayout.CENTER);
-        inputPanel.add(sendButton, BorderLayout.EAST);
-        
-        panel.add(chatScroll, BorderLayout.CENTER);
-        panel.add(inputPanel, BorderLayout.SOUTH);
-        
-        return panel;
-    }
-    
-    private String generateFullResponse(String input) {
-        String lowerInput = input.toLowerCase();
-        
-        if (lowerInput.contains("momentum")) {
-            return "I'll help you build a momentum strategy. Here are the key components:\n\n" +
-                   "Entry Conditions:\n" +
-                   "• RSI(14) > 60\n" +
-                   "• Price > 20-day SMA\n" +
-                   "• Volume > 1.5x average\n" +
-                   "• ADX > 25 (trend strength)\n\n" +
-                   "Exit Conditions:\n" +
-                   "• RSI < 40\n" +
-                   "• Price < 20-day SMA\n" +
-                   "• 5% stop loss\n" +
-                   "• 10% profit target\n\n" +
-                   "Would you like me to apply these settings to your strategy form?";
-        }
-        
-        if (lowerInput.contains("optimize") || lowerInput.contains("improve")) {
-            return "I can help optimize your strategy. Here are some suggestions:\n\n" +
-                   "Risk Management Improvements:\n" +
-                   "• Reduce position size during high volatility\n" +
-                   "• Add correlation filters\n" +
-                   "• Implement dynamic stop losses\n\n" +
-                   "Entry/Exit Enhancements:\n" +
-                   "• Add volume confirmation\n" +
-                   "• Use multiple timeframe analysis\n" +
-                   "• Implement trailing stops\n\n" +
-                   "Would you like me to apply these optimizations?";
-        }
-        
-        return "I can help you with:\n\n" +
-               "• Strategy Creation - Build new strategies from scratch\n" +
-               "• Optimization - Improve existing strategies\n" +
-               "• Risk Management - Add protective measures\n" +
-               "• Backtesting - Test historical performance\n" +
-               "• Parameter Tuning - Find optimal settings\n\n" +
-               "What would you like to work on?";
-    }
-    
-    private JPanel createHomePage() {
-        JPanel homePanel = new JPanel(new BorderLayout());
-        
-        if (!authManager.isAuthenticated()) {
-            // Non-authenticated home page with AI input
-            homePanel.add(createLandingPageWithAI(), BorderLayout.CENTER);
-        } else if (authManager.isGuestMode()) {
-            // Guest mode - redirect to strategies
-            navigateToPage("strategies");
-        } else {
-            // Authenticated user home
-            homePanel.add(createAuthenticatedHome(), BorderLayout.CENTER);
-        }
-        
-        return homePanel;
-    }
-    
-    private JPanel createLandingPageWithAI() {
-        JPanel panel = new JPanel(new BorderLayout());
-        
-        // Hero section
-        JPanel heroPanel = new JPanel();
-        heroPanel.setLayout(new BoxLayout(heroPanel, BoxLayout.Y_AXIS));
-        heroPanel.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
-        heroPanel.setBackground(new Color(30, 58, 138)); // Dark blue
-        
-        JLabel title = new JLabel("Trade Smarter with AI-Powered Insights");
-        title.setFont(new Font("Arial", Font.BOLD, 36));
-        title.setForeground(Color.WHITE);
-        title.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
-        JLabel subtitle = new JLabel("Harness the power of artificial intelligence to optimize your trading strategies");
-        subtitle.setFont(new Font("Arial", Font.PLAIN, 18));
-        subtitle.setForeground(new Color(200, 200, 200));
-        subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
-        heroPanel.add(title);
-        heroPanel.add(Box.createVerticalStrut(20));
-        heroPanel.add(subtitle);
-        
-        // AI Input section
-        JPanel aiInputPanel = new JPanel();
-        aiInputPanel.setLayout(new BoxLayout(aiInputPanel, BoxLayout.Y_AXIS));
-        aiInputPanel.setBorder(BorderFactory.createEmptyBorder(50, 100, 50, 100));
-        
-        JLabel aiTitle = new JLabel("Describe Your Trading Strategy");
-        aiTitle.setFont(new Font("Arial", Font.BOLD, 24));
-        aiTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
-        JTextArea aiInput = new JTextArea(3, 50);
-        aiInput.setLineWrap(true);
-        aiInput.setWrapStyleWord(true);
-        aiInput.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Color.GRAY),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
-        aiInput.setFont(new Font("Arial", Font.PLAIN, 14));
-        
-        JScrollPane scrollPane = new JScrollPane(aiInput);
-        scrollPane.setMaximumSize(new Dimension(800, 100));
-        
-        JButton submitButton = new JButton("Get Started");
-        submitButton.setBackground(new Color(79, 70, 229));
-        submitButton.setForeground(Color.WHITE);
-        submitButton.setBorderPainted(false);
-        submitButton.setFocusPainted(false);
-        submitButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        submitButton.addActionListener(e -> {
-            // Enable guest mode and navigate to strategies
-            authManager.loginAsGuest();
-            updateUIForAuthState();
-            navigateToPage("strategies");
-        });
-        
-        // Quick prompts
-        JPanel promptsPanel = new JPanel(new FlowLayout());
-        String[] prompts = {"Momentum strategy for tech stocks", "Low-risk dividend portfolio", 
-                           "Crypto swing trading strategy", "Market volatility hedge"};
-        
-        for (String prompt : prompts) {
-            JButton promptButton = new JButton(prompt);
-            promptButton.setBorderPainted(false);
-            promptButton.setContentAreaFilled(false);
-            promptButton.addActionListener(e -> {
-                aiInput.setText(prompt);
-                submitButton.doClick();
-            });
-            promptsPanel.add(promptButton);
-        }
-        
-        aiInputPanel.add(aiTitle);
-        aiInputPanel.add(Box.createVerticalStrut(20));
-        aiInputPanel.add(scrollPane);
-        aiInputPanel.add(Box.createVerticalStrut(20));
-        aiInputPanel.add(submitButton);
-        aiInputPanel.add(Box.createVerticalStrut(20));
-        aiInputPanel.add(promptsPanel);
-        
-        panel.add(heroPanel, BorderLayout.NORTH);
-        panel.add(aiInputPanel, BorderLayout.CENTER);
-        
-        return panel;
-    }
-    
-    private JPanel createStrategiesPage() {
-        if (authManager.isAuthenticated() && !authManager.isGuestMode()) {
-            // Full strategies page for authenticated users
-            return createFullStrategiesPage();
-        } else {
-            // Guest mode strategies page
-            return createGuestStrategiesPage();
-        }
-    }
-    
-    private JPanel createGuestStrategiesPage() {
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setDividerLocation(400);
-        splitPane.setResizeWeight(0.3);
-        
-        // Left: AI Assistant
-        JPanel aiPanel = createGuestAIAssistant();
-        
-        // Right: Strategy Builder Preview with nested split
-        JSplitPane rightSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        rightSplit.setDividerLocation(500);
-        rightSplit.setResizeWeight(0.6);
-        
-        // Strategy form (grayed out)
-        JPanel strategyForm = createGuestStrategyForm();
-        
-        // Right side: Notifications and Output
-        JSplitPane rightVerticalSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        rightVerticalSplit.setDividerLocation(200);
-        rightVerticalSplit.setResizeWeight(0.4);
-        
-        rightVerticalSplit.setTopComponent(createGuestNotificationsPanel());
-        rightVerticalSplit.setBottomComponent(createGuestOutputPanel());
-        
-        rightSplit.setLeftComponent(strategyForm);
-        rightSplit.setRightComponent(rightVerticalSplit);
-        
-        splitPane.setLeftComponent(aiPanel);
-        splitPane.setRightComponent(rightSplit);
-        
-        return splitPane;
-    }
-    
-    private JPanel createFullStrategiesPage() {
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setDividerLocation(600);
-        splitPane.setResizeWeight(0.6);
-        
-        // Left: Strategy Form
-        JPanel strategyForm = createFullStrategyForm();
-        
-        // Right: Split between notifications and output
-        JSplitPane rightSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        rightSplit.setDividerLocation(250);
-        rightSplit.setResizeWeight(0.4);
-        
-        rightSplit.setTopComponent(createNotificationsPanel());
-        rightSplit.setBottomComponent(createOutputPanel());
-        
-        splitPane.setLeftComponent(strategyForm);
-        splitPane.setRightComponent(rightSplit);
-        
-        return splitPane;
-    }
-    
-    private JPanel createGuestAIAssistant() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("AI Assistant (Guest Mode)"));
-        
-        // Chat area
-        JTextArea chatArea = new JTextArea();
-        chatArea.setEditable(false);
-        chatArea.setLineWrap(true);
-        chatArea.setWrapStyleWord(true);
-        chatArea.setText("Hello! I'm your AI strategy assistant in guest mode. I can provide sample strategies and general guidance. For full features, please sign up!\n\n");
-        
-        JScrollPane chatScroll = new JScrollPane(chatArea);
-        chatScroll.setPreferredSize(new Dimension(380, 400));
-        
-        // Input area
-        JPanel inputPanel = new JPanel(new BorderLayout());
-        JTextArea inputArea = new JTextArea(2, 30);
-        inputArea.setLineWrap(true);
-        inputArea.setWrapStyleWord(true);
-        inputArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        
-        JButton sendButton = new JButton("Send");
-        sendButton.addActionListener(e -> {
-            String input = inputArea.getText().trim();
-            if (!input.isEmpty()) {
-                chatArea.append("You: " + input + "\n\n");
-                inputArea.setText("");
-                
-                // Simulate AI response with guest limitations
-                SwingWorker<String, Void> worker = new SwingWorker<String, Void>() {
-                    @Override
-                    protected String doInBackground() throws Exception {
-                        Thread.sleep(1000); // Simulate processing
-                        return generateGuestResponse(input);
-                    }
-                    
-                    @Override
-                    protected void done() {
-                        try {
-                            String response = get();
-                            chatArea.append("AI: " + response + "\n\n");
-                            if (response.contains("Sign up")) {
-                                chatArea.append("📌 To customize and backtest this strategy with real data, please log in.\n");
-                                chatArea.append("[Sign Up Free] [Log In]\n\n");
-                            }
-                            chatArea.setCaretPosition(chatArea.getDocument().getLength());
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
-                    }
-                };
-                worker.execute();
-            }
-        });
-        
-        JScrollPane inputScroll = new JScrollPane(inputArea);
-        inputPanel.add(inputScroll, BorderLayout.CENTER);
-        inputPanel.add(sendButton, BorderLayout.EAST);
-        
-        // Rate limiting notice
-        JLabel limitNotice = new JLabel("Guest mode: Limited responses. Sign up for unlimited access.");
-        limitNotice.setFont(new Font("Arial", Font.ITALIC, 11));
-        limitNotice.setForeground(Color.GRAY);
-        limitNotice.setHorizontalAlignment(SwingConstants.CENTER);
-        
-        panel.add(chatScroll, BorderLayout.CENTER);
-        panel.add(inputPanel, BorderLayout.SOUTH);
-        panel.add(limitNotice, BorderLayout.PAGE_END);
-        
-        return panel;
-    }
-    
-    private String generateGuestResponse(String input) {
-        String lowerInput = input.toLowerCase();
-        
-        if (lowerInput.contains("momentum") || lowerInput.contains("tech")) {
-            return "Here's a sample momentum strategy:\n\n" +
-                   "**Tech Momentum Strategy**\n" +
-                   "This sample strategy allocates equally to AAPL, TSLA, and NVDA when their 3-month returns exceed 12% and volatility is under 15%.\n\n" +
-                   "Key Features:\n" +
-                   "• Equal weight allocation (33.3% each)\n" +
-                   "• Monthly rebalancing\n" +
-                   "• 10% stop-loss protection\n" +
-                   "• Targets 15-20% annual returns\n\n" +
-                   "Sign up to customize parameters and run backtests.";
-        }
-        
-        if (lowerInput.contains("dividend") || lowerInput.contains("low risk")) {
-            return "Here's a sample dividend strategy:\n\n" +
-                   "**Dividend Growth Portfolio**\n" +
-                   "This conservative strategy focuses on dividend aristocrats with 10+ years of consecutive dividend increases.\n\n" +
-                   "Key Features:\n" +
-                   "• Focus on dividend aristocrats\n" +
-                   "• Quarterly rebalancing\n" +
-                   "• 5% maximum position size\n" +
-                   "• Target 8-12% annual returns\n\n" +
-                   "Sign up to customize this strategy.";
-        }
-        
-        return "I can help you explore different strategy types:\n\n" +
-               "• Growth/Momentum - Target stocks with strong price momentum\n" +
-               "• Value/Contrarian - Buy undervalued assets\n" +
-               "• Income/Dividend - Focus on dividend-paying stocks\n" +
-               "• Sector Rotation - Rotate between market sectors\n\n" +
-               "Tell me which interests you, and I'll provide a sample template.";
-    }
-    
-    private JPanel createGuestStrategyForm() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Strategy Builder (Read-only)"));
-        
-        // Create form with sample data
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.anchor = GridBagConstraints.WEST;
-        
-        // Strategy name
-        gbc.gridx = 0; gbc.gridy = 0;
-        formPanel.add(new JLabel("Strategy Name:"), gbc);
-        gbc.gridx = 1;
-        JTextField nameField = new JTextField("Sample Momentum Strategy", 20);
-        nameField.setEditable(false);
-        nameField.setBackground(Color.LIGHT_GRAY);
-        formPanel.add(nameField, gbc);
-        
-        // Strategy type
-        gbc.gridx = 0; gbc.gridy = 1;
-        formPanel.add(new JLabel("Strategy Type:"), gbc);
-        gbc.gridx = 1;
-        JComboBox<String> typeCombo = new JComboBox<>(new String[]{"Momentum", "Mean Reversion", "Trend Following"});
-        typeCombo.setEnabled(false);
-        formPanel.add(typeCombo, gbc);
-        
-        // Asset class
-        gbc.gridx = 0; gbc.gridy = 2;
-        formPanel.add(new JLabel("Asset Class:"), gbc);
-        gbc.gridx = 1;
-        JComboBox<String> assetCombo = new JComboBox<>(new String[]{"Stocks", "Crypto", "Forex"});
-        assetCombo.setEnabled(false);
-        formPanel.add(assetCombo, gbc);
-        
-        // Entry conditions
-        gbc.gridx = 0; gbc.gridy = 3;
-        formPanel.add(new JLabel("Entry Conditions:"), gbc);
-        gbc.gridx = 1;
-        JTextArea entryArea = new JTextArea("RSI > 70\nPrice > SMA20\nVolume > 1.5x average", 3, 20);
-        entryArea.setEditable(false);
-        entryArea.setBackground(Color.LIGHT_GRAY);
-        formPanel.add(new JScrollPane(entryArea), gbc);
-        
-        // Exit rules
-        gbc.gridx = 0; gbc.gridy = 4;
-        formPanel.add(new JLabel("Profit Target (%):"), gbc);
-        gbc.gridx = 1;
-        JTextField profitField = new JTextField("5.0", 10);
-        profitField.setEditable(false);
-        profitField.setBackground(Color.LIGHT_GRAY);
-        formPanel.add(profitField, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 5;
-        formPanel.add(new JLabel("Stop Loss (%):"), gbc);
-        gbc.gridx = 1;
-        JTextField stopField = new JTextField("2.0", 10);
-        stopField.setEditable(false);
-        stopField.setBackground(Color.LIGHT_GRAY);
-        formPanel.add(stopField, gbc);
-        
-        // Buttons (disabled for guests)
-        gbc.gridx = 0; gbc.gridy = 6;
-        gbc.gridwidth = 2;
-        JPanel buttonPanel = new JPanel(new FlowLayout());
-        
-        JButton saveButton = new JButton("Save (Sign up required)");
-        saveButton.setEnabled(false);
-        JButton backtestButton = new JButton("Backtest (Sign up required)");
-        backtestButton.setEnabled(false);
-        
-        buttonPanel.add(saveButton);
-        buttonPanel.add(backtestButton);
-        formPanel.add(buttonPanel, gbc);
-        
-        panel.add(formPanel, BorderLayout.CENTER);
-        
-        // Upgrade prompt at bottom
-        JPanel upgradePanel = new JPanel(new BorderLayout());
-        upgradePanel.setBackground(new Color(239, 246, 255));
-        upgradePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        JLabel upgradeLabel = new JLabel("Ready to Create Your Own Strategy?");
-        upgradeLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        upgradeLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        
-        JButton upgradeButton = new JButton("Sign Up Free - Build Custom Strategies");
-        upgradeButton.setBackground(new Color(79, 70, 229));
-        upgradeButton.setForeground(Color.WHITE);
-        upgradeButton.setBorderPainted(false);
-        upgradeButton.addActionListener(e -> showRegisterDialog());
-        
-        upgradePanel.add(upgradeLabel, BorderLayout.NORTH);
-        upgradePanel.add(upgradeButton, BorderLayout.CENTER);
-        
-        panel.add(upgradePanel, BorderLayout.SOUTH);
-        
-        return panel;
-    }
-    
-    private JPanel createGuestNotificationsPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Messages & Notifications"));
-        
-        DefaultListModel<String> listModel = new DefaultListModel<>();
-        listModel.addElement("ℹ️ Strategy builder loaded successfully");
-        listModel.addElement("⚠️ Guest mode: Save and backtest features are disabled");
-        listModel.addElement("📌 Guest mode provides sample responses. Sign up for full AI capabilities.");
-        
-        JList<String> notificationsList = new JList<>(listModel);
-        notificationsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        
-        JScrollPane scrollPane = new JScrollPane(notificationsList);
-        scrollPane.setPreferredSize(new Dimension(300, 180));
-        
-        panel.add(scrollPane, BorderLayout.CENTER);
-        
-        return panel;
-    }
-    
-    private JPanel createGuestOutputPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Strategy Output"));
-        
-        // Language tabs
-        JTabbedPane tabbedPane = new JTabbedPane();
-        
-        // JSON tab
-        JTextArea jsonArea = new JTextArea();
-        jsonArea.setEditable(false);
-        jsonArea.setFont(new Font("Courier New", Font.PLAIN, 12));
-        jsonArea.setText("{\n  \"strategy\": {\n    \"name\": \"Sample Momentum Strategy\",\n    \"type\": \"momentum\",\n    \"assetClass\": \"stocks\"\n  }\n}");
-        tabbedPane.addTab("JSON", new JScrollPane(jsonArea));
-        
-        // Python tab
-        JTextArea pythonArea = new JTextArea();
-        pythonArea.setEditable(false);
-        pythonArea.setFont(new Font("Courier New", Font.PLAIN, 12));
-        pythonArea.setText("# Sample Trading Strategy - Python\nclass SampleStrategy(Strategy):\n    def __init__(self):\n        self.name = 'Sample Momentum Strategy'\n        # Sign up to generate custom code!");
-        tabbedPane.addTab("Python", new JScrollPane(pythonArea));
-        
-        // Java tab
-        JTextArea javaArea = new JTextArea();
-        javaArea.setEditable(false);
-        javaArea.setFont(new Font("Courier New", Font.PLAIN, 12));
-        javaArea.setText("// Sample Trading Strategy - Java\npublic class SampleStrategy {\n    private String name = \"Sample Momentum Strategy\";\n    // Sign up to generate custom code!\n}");
-        tabbedPane.addTab("Java", new JScrollPane(javaArea));
-        
-        panel.add(tabbedPane, BorderLayout.CENTER);
-        
-        // Guest mode warning at bottom
-        JPanel warningPanel = new JPanel(new BorderLayout());
-        warningPanel.setBackground(new Color(255, 243, 205)); // Warning yellow
-        warningPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-        
-        JLabel warningLabel = new JLabel("⚠️ Guest Mode - Code is read-only. Sign up to edit and export code.");
-        warningLabel.setFont(new Font("Arial", Font.PLAIN, 11));
-        
-        JButton signUpButton = new JButton("Sign Up Free");
-        signUpButton.setBackground(new Color(245, 158, 11));
-        signUpButton.setForeground(Color.WHITE);
-        signUpButton.setBorderPainted(false);
-        signUpButton.addActionListener(e -> showRegisterDialog());
-        
-        warningPanel.add(warningLabel, BorderLayout.CENTER);
-        warningPanel.add(signUpButton, BorderLayout.EAST);
-        
-        panel.add(warningPanel, BorderLayout.SOUTH);
-        
-        return panel;
-    }
-    
-    private JPanel createFullStrategyForm() {
-        // Full strategy form for authenticated users
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Strategy Builder"));
-        
-        // Implementation would be similar to guest form but fully functional
-        JLabel placeholder = new JLabel("Full Strategy Builder (Authenticated Users)", SwingConstants.CENTER);
-        placeholder.setFont(new Font("Arial", Font.BOLD, 16));
-        panel.add(placeholder, BorderLayout.CENTER);
-        
-        return panel;
-    }
-    
-    private JPanel createNotificationsPanel() {
-        // Full notifications panel for authenticated users
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Messages & Notifications"));
-        
-        JLabel placeholder = new JLabel("Full Notifications Panel", SwingConstants.CENTER);
-        panel.add(placeholder, BorderLayout.CENTER);
-        
-        return panel;
-    }
-    
-    private JPanel createOutputPanel() {
-        // Full output panel for authenticated users
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Strategy Output"));
-        
-        JLabel placeholder = new JLabel("Full Output Panel with Code Generation", SwingConstants.CENTER);
-        panel.add(placeholder, BorderLayout.CENTER);
-        
-        return panel;
-    }
-    
-    private JPanel createAuthenticatedHome() {
-        JPanel panel = new JPanel(new BorderLayout());
-        
-        JLabel welcomeLabel = new JLabel("Welcome back, " + authManager.getCurrentUser().getName() + "!", SwingConstants.CENTER);
-        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 24));
-        
-        JPanel buttonPanel = new JPanel(new FlowLayout());
-        JButton dashboardButton = new JButton("Go to Dashboard");
-        dashboardButton.addActionListener(e -> navigateToPage("dashboard"));
-        
-        JButton strategiesButton = new JButton("Strategy Builder");
-        strategiesButton.addActionListener(e -> navigateToPage("strategies"));
-        
-        buttonPanel.add(dashboardButton);
-        buttonPanel.add(strategiesButton);
-        
-        panel.add(welcomeLabel, BorderLayout.CENTER);
-        panel.add(buttonPanel, BorderLayout.SOUTH);
-        
-        return panel;
-    }
-    
-    private JPanel createDashboard() {
-        JPanel panel = new JPanel(new BorderLayout());
-        
-        if (!authManager.isAuthenticated() || authManager.isGuestMode()) {
-            JLabel accessDenied = new JLabel("Dashboard access requires authentication", SwingConstants.CENTER);
-            panel.add(accessDenied, BorderLayout.CENTER);
-        } else {
-            JLabel dashboardLabel = new JLabel("Dashboard - Portfolio Overview", SwingConstants.CENTER);
-            dashboardLabel.setFont(new Font("Arial", Font.BOLD, 20));
-            panel.add(dashboardLabel, BorderLayout.CENTER);
-        }
-        
-        return panel;
-    }
-    
-    private JPanel createPlaceholderPage(String pageName) {
-        JPanel panel = new JPanel(new BorderLayout());
-        
-        String title = pageName.substring(0, 1).toUpperCase() + pageName.substring(1);
-        JLabel label = new JLabel(title + " - Coming Soon", SwingConstants.CENTER);
-        label.setFont(new Font("Arial", Font.BOLD, 20));
-        
-        if (authManager.isGuestMode()) {
-            JPanel guestPanel = new JPanel();
-            guestPanel.setLayout(new BoxLayout(guestPanel, BoxLayout.Y_AXIS));
-            
-            label.setAlignmentX(Component.CENTER_ALIGNMENT);
-            guestPanel.add(label);
-            guestPanel.add(Box.createVerticalStrut(20));
-            
-            JLabel guestNotice = new JLabel("Limited features in guest mode. Sign up for full access.");
-            guestNotice.setAlignmentX(Component.CENTER_ALIGNMENT);
-            guestNotice.setForeground(Color.GRAY);
-            guestPanel.add(guestNotice);
-            
-            panel.add(guestPanel, BorderLayout.CENTER);
-        } else {
-            panel.add(label, BorderLayout.CENTER);
-        }
-        
-        return panel;
-    }
-    
-    private void updateUserControls(JPanel rightPanel) {
-        // Clear existing user controls
-        Component[] components = rightPanel.getComponents();
-        for (int i = components.length - 1; i >= 0; i--) {
-            if (components[i] instanceof JButton) {
-                JButton btn = (JButton) components[i];
-                if (btn.getText().contains("Log") || btn.getText().contains("Sign") || 
-                    btn.getText().contains("Guest") || btn.getText().contains("User")) {
-                    rightPanel.remove(btn);
-                }
-            }
-        }
-        
-        if (!authManager.isAuthenticated()) {
-            // Non-authenticated state
-            JButton loginButton = new JButton("Log In");
-            loginButton.addActionListener(e -> showLoginDialog());
-            
-            JButton registerButton = new JButton("Sign Up");
-            registerButton.setBackground(new Color(79, 70, 229));
-            registerButton.setForeground(Color.WHITE);
-            registerButton.setBorderPainted(false);
-            registerButton.addActionListener(e -> showRegisterDialog());
-            
-            rightPanel.add(loginButton);
-            rightPanel.add(registerButton);
-        } else if (authManager.isGuestMode()) {
-            // Guest mode state
-            JLabel guestLabel = new JLabel("Guest Mode");
-            guestLabel.setForeground(new Color(245, 158, 11)); // Warning color
-            guestLabel.setFont(new Font("Arial", Font.BOLD, 12));
-            
-            JButton loginButton = new JButton("Log In");
-            loginButton.addActionListener(e -> showLoginDialog());
-            
-            JButton signUpButton = new JButton("Sign Up");
-            signUpButton.setBackground(new Color(79, 70, 229));
-            signUpButton.setForeground(Color.WHITE);
-            signUpButton.setBorderPainted(false);
-            signUpButton.addActionListener(e -> showRegisterDialog());
-            
-            rightPanel.add(guestLabel);
-            rightPanel.add(loginButton);
-            rightPanel.add(signUpButton);
-        } else {
-            // Authenticated state
-            User user = authManager.getCurrentUser();
-            JButton userButton = new JButton(user.getName());
-            userButton.addActionListener(e -> showUserMenu(userButton));
-            
-            JLabel statusLabel = new JLabel(user.isPro() ? "Pro" : "Basic");
-            statusLabel.setForeground(user.isPro() ? new Color(79, 70, 229) : new Color(245, 158, 11));
-            statusLabel.setFont(new Font("Arial", Font.BOLD, 10));
-            
-            rightPanel.add(statusLabel);
-            rightPanel.add(userButton);
-        }
-        
-        rightPanel.revalidate();
-        rightPanel.repaint();
-    }
-    
-    private void showUserMenu(JButton userButton) {
-        JPopupMenu userMenu = new JPopupMenu();
-        
-        if (!authManager.getCurrentUser().isPro()) {
-            JMenuItem upgradeItem = new JMenuItem("Upgrade to Pro");
-            upgradeItem.addActionListener(e -> {
-                authManager.upgradeToPro();
-                updateUIForAuthState();
-            });
-            userMenu.add(upgradeItem);
-            userMenu.addSeparator();
-        }
-        
-        JMenuItem profileItem = new JMenuItem("Profile Settings");
-        profileItem.addActionListener(e -> showProfileDialog());
-        userMenu.add(profileItem);
-        
-        JMenuItem logoutItem = new JMenuItem("Sign Out");
-        logoutItem.addActionListener(e -> {
-            authManager.logout();
-            updateUIForAuthState();
-            navigateToPage("home");
-        });
-        userMenu.add(logoutItem);
-        
-        userMenu.show(userButton, 0, userButton.getHeight());
-    }
-    
-    private void showLoginDialog() {
-        LoginDialog dialog = new LoginDialog(this);
-        dialog.setVisible(true);
-        
-        if (dialog.isSuccessful()) {
-            updateUIForAuthState();
-            if (authManager.isAuthenticated()) {
-                navigateToPage("dashboard");
-            }
-        }
-    }
-    
-    private void showRegisterDialog() {
-        RegisterDialog dialog = new RegisterDialog(this);
-        dialog.setVisible(true);
-        
-        if (dialog.isSuccessful()) {
-            updateUIForAuthState();
-            if (authManager.isAuthenticated()) {
-                navigateToPage("dashboard");
-            }
-        }
-    }
-    
-    private void showProfileDialog() {
-        JOptionPane.showMessageDialog(this, "Profile settings would be implemented here.", 
-                                    "Profile", JOptionPane.INFORMATION_MESSAGE);
-    }
-    
-    private void updateUIForAuthState() {
-        // Update guest banner visibility
-        guestBanner.setVisible(authManager.isGuestMode());
-        
-        // Update user controls in header
-        JPanel rightPanel = (JPanel) ((BorderLayout) menuBar.getLayout()).getLayoutComponent(BorderLayout.EAST);
-        updateUserControls(rightPanel);
-        
-        // Recreate content panels to reflect auth state
-        createContentPanels();
-        
-        // Navigate to appropriate page
-        if (authManager.isGuestMode()) {
-            navigateToPage("strategies");
-        } else if (authManager.isAuthenticated()) {
-            if (shouldShowCenteredAssistant()) {
-                cardLayout.show(mainPanel, "centered_ai");
-            } else {
-                navigateToPage("dashboard");
-            }
-        } else {
-            navigateToPage("home");
-        }
-        
-        mainPanel.revalidate();
-        mainPanel.repaint();
-    }
-    
-    private void navigateToPage(String page) {
-        // Update content based on page and auth state
-        switch (page) {
-            case "strategies":
-                mainPanel.removeAll();
-                mainPanel.add(createStrategiesPage(), "current");
-                cardLayout.show(mainPanel, "current");
-                break;
-            case "dashboard":
-                if (authManager.isAuthenticated() && !authManager.isGuestMode()) {
-                    if (shouldShowCenteredAssistant()) {
-                        cardLayout.show(mainPanel, "centered_ai");
-                    } else {
-                        cardLayout.show(mainPanel, "dashboard");
-                    }
-                } else {
-                    showLoginDialog();
-                    return;
-                }
-                break;
-            case "home":
-                mainPanel.removeAll();
-                mainPanel.add(createHomePage(), "current");
-                cardLayout.show(mainPanel, "current");
-                break;
-            default:
-                if (mainPanel.getComponentCount() > 0) {
-                    try {
-                        cardLayout.show(mainPanel, page);
-                    } catch (Exception e) {
-                        // Page doesn't exist, create placeholder
-                        mainPanel.removeAll();
-                        mainPanel.add(createPlaceholderPage(page), "current");
-                        cardLayout.show(mainPanel, "current");
-                    }
-                }
-                break;
-        }
-        
-        mainPanel.revalidate();
-        mainPanel.repaint();
-    }
-    
-    private void toggleTheme() {
-        isDarkMode = !isDarkMode;
-        applyTheme();
-    }
-    
-    private void applyTheme() {
-        Color bgColor = isDarkMode ? new Color(31, 41, 55) : Color.WHITE;
-        Color textColor = isDarkMode ? Color.WHITE : Color.BLACK;
-        
-        // Apply theme to main components
-        mainPanel.setBackground(bgColor);
-        mainPanel.setForeground(textColor);
-        
-        // Update theme button
-        JPanel rightPanel = (JPanel) ((BorderLayout) menuBar.getLayout()).getLayoutComponent(BorderLayout.EAST);
-        for (Component comp : rightPanel.getComponents()) {
-            if (comp instanceof JButton && ((JButton) comp).getText().contains("🌙")) {
-                ((JButton) comp).setText(isDarkMode ? "☀️" : "🌙");
-                break;
-            }
-        }
-        
-        repaint();
-    }
-    
-    private void setupEventHandlers() {
-        // Window closing handler
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                workspaceManager.saveWorkspace();
-                System.exit(0);
-            }
-        });
-    }
-    
-    private void showInitialView() {
-        if (authManager.isAuthenticated()) {
-            if (authManager.isGuestMode()) {
-                guestBanner.setVisible(true);
-                navigateToPage("strategies");
-            } else if (shouldShowCenteredAssistant()) {
-                cardLayout.show(mainPanel, "centered_ai");
-            } else {
-                navigateToPage("dashboard");
-            }
-        } else {
-            navigateToPage("home");
-        }
-        
-        updateUIForAuthState();
-    }
-}
-
-// Authentication Manager with Guest Mode Support
-class AuthenticationManager {
+// Supporting classes
+class AuthManager {
     private User currentUser;
-    private boolean isGuestMode = false;
-    
-    public boolean isAuthenticated() {
-        return currentUser != null;
-    }
-    
-    public boolean isGuestMode() {
-        return isGuestMode;
-    }
-    
-    public User getCurrentUser() {
-        return currentUser;
-    }
+    private boolean isAuthenticated = false;
+    private boolean guestMode = false;
     
     public boolean login(String email, String password) {
-        // Simulate authentication
+        // Mock authentication
         if ("demo@example.com".equals(email) && "password".equals(password)) {
-            currentUser = new User("1", "Demo User", email, "Trader", false);
-            isGuestMode = false;
+            currentUser = new User("Demo User", email, false);
+            isAuthenticated = true;
+            guestMode = false;
             return true;
         }
         return false;
     }
     
-    public boolean register(String name, String email, String password, String role) {
-        // Simulate registration
-        currentUser = new User("1", name, email, role, false);
-        isGuestMode = false;
+    public boolean register(String name, String email, String password) {
+        // Mock registration
+        currentUser = new User(name, email, false);
+        isAuthenticated = true;
+        guestMode = false;
         return true;
     }
     
     public void loginAsGuest() {
-        currentUser = new User("guest", "Guest User", "", "Guest", false);
-        isGuestMode = true;
+        currentUser = new User("Guest User", "", false);
+        isAuthenticated = true;
+        guestMode = true;
     }
     
     public void logout() {
         currentUser = null;
-        isGuestMode = false;
+        isAuthenticated = false;
+        guestMode = false;
     }
     
-    public void upgradeToPro() {
-        if (currentUser != null && !isGuestMode) {
-            currentUser.setPro(true);
-        }
+    public boolean isAuthenticated() {
+        return isAuthenticated;
+    }
+    
+    public boolean isGuestMode() {
+        return guestMode;
+    }
+    
+    public User getCurrentUser() {
+        return currentUser;
     }
 }
 
-// User class
 class User {
-    private String id;
     private String name;
     private String email;
-    private String role;
     private boolean isPro;
     
-    public User(String id, String name, String email, String role, boolean isPro) {
-        this.id = id;
+    public User(String name, String email, boolean isPro) {
         this.name = name;
         this.email = email;
-        this.role = role;
         this.isPro = isPro;
     }
     
-    // Getters and setters
-    public String getId() { return id; }
     public String getName() { return name; }
     public String getEmail() { return email; }
-    public String getRole() { return role; }
     public boolean isPro() { return isPro; }
-    public void setPro(boolean pro) { this.isPro = pro; }
-}
-
-// Workspace Manager
-class WorkspaceManager {
-    private Map<String, Object> workspaceData = new HashMap<>();
-    private boolean hasWorkspaceState = false;
-    
-    public void saveWorkspace() {
-        // Save workspace state
-        System.out.println("Workspace saved");
-    }
-    
-    public void loadWorkspace() {
-        // Load workspace state
-        System.out.println("Workspace loaded");
-    }
-    
-    public boolean hasWorkspaceState() {
-        return hasWorkspaceState;
-    }
-    
-    public void setData(String key, Object value) {
-        workspaceData.put(key, value);
-        hasWorkspaceState = true;
-    }
-    
-    public Object getData(String key) {
-        return workspaceData.get(key);
-    }
-}
-
-// Login Dialog
-class LoginDialog extends JDialog {
-    private boolean successful = false;
-    private JTextField emailField;
-    private JPasswordField passwordField;
-    
-    public LoginDialog(Frame parent) {
-        super(parent, "Log In", true);
-        initializeUI();
-    }
-    
-    private void initializeUI() {
-        setLayout(new BorderLayout());
-        setSize(400, 300);
-        setLocationRelativeTo(getParent());
-        
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-        
-        // Title
-        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
-        JLabel titleLabel = new JLabel("Log in to your account");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        formPanel.add(titleLabel, gbc);
-        
-        // Email
-        gbc.gridwidth = 1; gbc.gridy = 1;
-        gbc.gridx = 0;
-        formPanel.add(new JLabel("Email:"), gbc);
-        gbc.gridx = 1;
-        emailField = new JTextField(20);
-        formPanel.add(emailField, gbc);
-        
-        // Password
-        gbc.gridy = 2;
-        gbc.gridx = 0;
-        formPanel.add(new JLabel("Password:"), gbc);
-        gbc.gridx = 1;
-        passwordField = new JPasswordField(20);
-        formPanel.add(passwordField, gbc);
-        
-        // Demo credentials hint
-        gbc.gridy = 3; gbc.gridx = 0; gbc.gridwidth = 2;
-        JLabel hintLabel = new JLabel("Demo: demo@example.com / password");
-        hintLabel.setFont(new Font("Arial", Font.ITALIC, 12));
-        hintLabel.setForeground(Color.GRAY);
-        hintLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        formPanel.add(hintLabel, gbc);
-        
-        // Buttons
-        gbc.gridy = 4;
-        JPanel buttonPanel = new JPanel(new FlowLayout());
-        
-        JButton loginButton = new JButton("Sign In");
-        loginButton.setBackground(new Color(79, 70, 229));
-        loginButton.setForeground(Color.WHITE);
-        loginButton.setBorderPainted(false);
-        loginButton.addActionListener(e -> attemptLogin());
-        
-        JButton cancelButton = new JButton("Cancel");
-        cancelButton.addActionListener(e -> dispose());
-        
-        buttonPanel.add(loginButton);
-        buttonPanel.add(cancelButton);
-        formPanel.add(buttonPanel, gbc);
-        
-        add(formPanel, BorderLayout.CENTER);
-        
-        // Enter key handling
-        getRootPane().setDefaultButton(loginButton);
-    }
-    
-    private void attemptLogin() {
-        String email = emailField.getText();
-        String password = new String(passwordField.getPassword());
-        
-        // Get parent's auth manager
-        TradingPlatform parent = (TradingPlatform) getParent();
-        if (parent.authManager.login(email, password)) {
-            successful = true;
-            dispose();
-        } else {
-            JOptionPane.showMessageDialog(this, "Invalid email or password", "Login Failed", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-    
-    public boolean isSuccessful() {
-        return successful;
-    }
-}
-
-// Register Dialog
-class RegisterDialog extends JDialog {
-    private boolean successful = false;
-    private JTextField nameField;
-    private JTextField emailField;
-    private JPasswordField passwordField;
-    private JPasswordField confirmPasswordField;
-    private JComboBox<String> roleCombo;
-    
-    public RegisterDialog(Frame parent) {
-        super(parent, "Create Account", true);
-        initializeUI();
-    }
-    
-    private void initializeUI() {
-        setLayout(new BorderLayout());
-        setSize(450, 400);
-        setLocationRelativeTo(getParent());
-        
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-        
-        // Title
-        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
-        JLabel titleLabel = new JLabel("Create your account");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        formPanel.add(titleLabel, gbc);
-        
-        // Name
-        gbc.gridwidth = 1; gbc.gridy = 1;
-        gbc.gridx = 0;
-        formPanel.add(new JLabel("Full Name:"), gbc);
-        gbc.gridx = 1;
-        nameField = new JTextField(20);
-        formPanel.add(nameField, gbc);
-        
-        // Email
-        gbc.gridy = 2;
-        gbc.gridx = 0;
-        formPanel.add(new JLabel("Email:"), gbc);
-        gbc.gridx = 1;
-        emailField = new JTextField(20);
-        formPanel.add(emailField, gbc);
-        
-        // Role
-        gbc.gridy = 3;
-        gbc.gridx = 0;
-        formPanel.add(new JLabel("I am a:"), gbc);
-        gbc.gridx = 1;
-        roleCombo = new JComboBox<>(new String[]{"Trader", "Analyst"});
-        formPanel.add(roleCombo, gbc);
-        
-        // Password
-        gbc.gridy = 4;
-        gbc.gridx = 0;
-        formPanel.add(new JLabel("Password:"), gbc);
-        gbc.gridx = 1;
-        passwordField = new JPasswordField(20);
-        formPanel.add(passwordField, gbc);
-        
-        // Confirm Password
-        gbc.gridy = 5;
-        gbc.gridx = 0;
-        formPanel.add(new JLabel("Confirm Password:"), gbc);
-        gbc.gridx = 1;
-        confirmPasswordField = new JPasswordField(20);
-        formPanel.add(confirmPasswordField, gbc);
-        
-        // Buttons
-        gbc.gridy = 6; gbc.gridx = 0; gbc.gridwidth = 2;
-        JPanel buttonPanel = new JPanel(new FlowLayout());
-        
-        JButton registerButton = new JButton("Create Account");
-        registerButton.setBackground(new Color(79, 70, 229));
-        registerButton.setForeground(Color.WHITE);
-        registerButton.setBorderPainted(false);
-        registerButton.addActionListener(e -> attemptRegister());
-        
-        JButton cancelButton = new JButton("Cancel");
-        cancelButton.addActionListener(e -> dispose());
-        
-        buttonPanel.add(registerButton);
-        buttonPanel.add(cancelButton);
-        formPanel.add(buttonPanel, gbc);
-        
-        add(formPanel, BorderLayout.CENTER);
-        
-        // Enter key handling
-        getRootPane().setDefaultButton(registerButton);
-    }
-    
-    private void attemptRegister() {
-        String name = nameField.getText().trim();
-        String email = emailField.getText().trim();
-        String password = new String(passwordField.getPassword());
-        String confirmPassword = new String(confirmPasswordField.getPassword());
-        String role = (String) roleCombo.getSelectedItem();
-        
-        // Validation
-        if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please fill in all fields", "Validation Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        if (!password.equals(confirmPassword)) {
-            JOptionPane.showMessageDialog(this, "Passwords do not match", "Validation Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        if (password.length() < 8) {
-            JOptionPane.showMessageDialog(this, "Password must be at least 8 characters long", "Validation Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        // Get parent's auth manager
-        TradingPlatform parent = (TradingPlatform) getParent();
-        if (parent.authManager.register(name, email, password, role)) {
-            successful = true;
-            dispose();
-        } else {
-            JOptionPane.showMessageDialog(this, "Registration failed. Please try again.", "Registration Failed", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-    
-    public boolean isSuccessful() {
-        return successful;
-    }
 }
