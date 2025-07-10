@@ -41,16 +41,8 @@
     
     <!-- Main content -->
     <div class="flex-1 overflow-hidden">
-      <!-- Landing page with centered AI Assistant -->
-      <div v-if="showCenteredAssistant" class="h-full">
-        <CenteredAiAssistant 
-          @engage="handleUserEngagement"
-          @login="handleLogin"
-        />
-      </div>
-      
       <!-- Full workspace -->
-      <div v-else-if="authStore.isAuthenticated && !authStore.guestMode" class="h-full">
+      <div v-if="authStore.isAuthenticated && !authStore.guestMode" class="h-full">
         <Splitpanes class="h-full">
           <!-- Left panel - AI Input & Messages -->
           <Pane :size="leftPaneSize" min-size="20">
@@ -100,7 +92,7 @@
         </Splitpanes>
       </div>
       
-      <!-- Guest mode workspace or non-authenticated -->
+      <!-- Regular content for non-authenticated or guest users -->
       <div v-else class="h-full">
         <router-view></router-view>
       </div>
@@ -121,7 +113,6 @@ import { useWorkspaceStore } from './stores/workspace'
 import AppHeader from './components/layout/AppHeader.vue'
 import AiAssistant from './components/ai/AiAssistant.vue'
 import MessagesPanel from './components/messages/MessagesPanel.vue'
-import CenteredAiAssistant from './components/ai/CenteredAiAssistant.vue'
 
 const authStore = useAuthStore()
 const workspaceStore = useWorkspaceStore()
@@ -138,13 +129,6 @@ const showGuestBanner = ref(true)
 const leftPaneSize = computed(() => 30)
 const centerPaneSize = computed(() => 70)
 
-// Centered assistant logic
-const showCenteredAssistant = computed(() => {
-  if (!authStore.isAuthenticated || authStore.guestMode) return false
-  if (authStore.isReturningUser && workspaceStore.hasWorkspaceState) return false
-  return !workspaceStore.hasEngaged
-})
-
 // Toggle messages panel
 const toggleMessages = () => {
   showMessages.value = !showMessages.value
@@ -154,6 +138,8 @@ const toggleMessages = () => {
 const toggleDarkMode = () => {
   isDarkMode.value = !isDarkMode.value
   updateTheme()
+  // Store preference
+  localStorage.setItem('darkMode', isDarkMode.value.toString())
 }
 
 // Update theme
@@ -163,6 +149,17 @@ const updateTheme = () => {
   } else {
     document.documentElement.classList.remove('dark')
   }
+}
+
+// Initialize theme from localStorage or system preference
+const initializeTheme = () => {
+  const stored = localStorage.getItem('darkMode')
+  if (stored !== null) {
+    isDarkMode.value = stored === 'true'
+  } else {
+    isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+  }
+  updateTheme()
 }
 
 // Handle user engagement
@@ -175,18 +172,9 @@ const handleLogin = () => {
   // This will be handled by the CenteredAiAssistant component
 }
 
-// Watch for system theme changes
-watch(
-  () => window.matchMedia('(prefers-color-scheme: dark)').matches,
-  (isDark) => {
-    isDarkMode.value = isDark
-    updateTheme()
-  },
-  { immediate: true }
-)
-
 // Initialize workspace state on mount
 onMounted(() => {
+  initializeTheme()
   workspaceStore.initializeWorkspace()
 })
 </script>

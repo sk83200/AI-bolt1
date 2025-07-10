@@ -5,11 +5,11 @@
       <!-- Hero section with chart -->
       <section class="py-12 px-4 md:py-20 bg-gradient-to-r from-primary-800 to-primary-900 dark:from-gray-800 dark:to-gray-900">
         <div class="max-w-7xl mx-auto">
-          <div class="flex flex-col md:flex-row items-center">
+          <div class="flex flex-col lg:flex-row items-center gap-8">
             <!-- Text content -->
-            <div class="md:w-1/2 text-center md:text-left mb-10 md:mb-0">
+            <div class="lg:w-1/2 text-center lg:text-left">
               <h1 class="text-4xl md:text-5xl font-bold text-white tracking-tight mb-4">
-                Trade Smarter with <span class="text-accent-400">AI-Powered</span> Insights
+                Trade Smarter with<br><span class="text-accent-400">AI-Powered</span><br>Insights
               </h1>
               <p class="text-lg md:text-xl text-white/80 mb-8 max-w-xl">
                 Harness the power of artificial intelligence to optimize your trading strategies and maximize returns in today's complex markets.
@@ -17,7 +17,7 @@
             </div>
             
             <!-- Chart preview -->
-            <div class="md:w-1/2">
+            <div class="lg:w-1/2 w-full">
               <TradingChart symbol="AAPL" class="rounded-lg shadow-2xl" />
             </div>
           </div>

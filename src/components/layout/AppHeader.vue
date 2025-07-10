@@ -58,6 +58,15 @@ const navigateTo = (path: string) => {
   router.push(path)
   isDropdownOpen.value = false
 }
+
+const handleNavClick = (path: string) => {
+  // If user is not authenticated and tries to access restricted features
+  if (!authStore.isAuthenticated && !authStore.guestMode) {
+    // Enable guest mode for exploration
+    authStore.loginAsGuest()
+  }
+  router.push(path)
+}
 </script>
 
 <template>
@@ -76,7 +85,8 @@ const navigateTo = (path: string) => {
             v-for="item in navItems"
             :key="item.name"
             :to="item.path"
-            class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+            class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+            @click="handleNavClick(item.path)"
           >
             {{ item.name }}
           </router-link>
